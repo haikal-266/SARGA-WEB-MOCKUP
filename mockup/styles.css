@@ -1,79 +1,3 @@
-<<<<<<< HEAD
-/* Hallmark · 2.0.0 | genre: editorial | theme: ink | posture: restrained | audience: 30+ civic adults | target: responsive */
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · weakest: none; authentic civic lending registry in plain black and paper with muted tools photography and one chromatic emerald state */
-/* Hallmark · waive 22 · ink and greys at zero chroma · a notice board and inventory registry is printed in plain black */
-/* Hallmark · waive 47b · real documentary photographs of community tools and workshop items · authentic items without faces */
-
-:root {
-  /* Hallmark Ink Theme OKLCH Tokens */
-  --color-paper: oklch(99.5% 0.003 100);
-  --color-paper-2: oklch(97% 0.004 100);
-  --color-paper-3: oklch(94% 0.006 100);
-  
-  --color-ink: oklch(16% 0 0);
-  --color-ink-2: oklch(28% 0 0);
-  --color-ink-hover: oklch(22% 0 0);
-  --color-muted: oklch(44% 0 0);
-  --color-muted-light: oklch(65% 0 0);
-
-  --color-rule: oklch(89% 0.004 100);
-  --color-rule-2: oklch(93.5% 0.003 100);
-  --color-rule-dark: oklch(16% 0 0);
-
-  /* The one chromatic accent: Emerald / Teal that means "Tersedia / Siap Dipinjam" */
-  --color-accent: oklch(50% 0.095 188);
-  --color-accent-ink: oklch(99.5% 0.003 100);
-  --color-accent-soft: oklch(93% 0.05 190);
-  --color-accent-soft-ink: oklch(27% 0.045 190);
-  --color-accent-border: oklch(85% 0.07 188);
-  --color-focus: oklch(50% 0.095 188);
-  --color-focus-ring: oklch(50% 0.095 188 / 0.15);
-
-  /* Warning / Out states */
-  --color-amber-soft: oklch(96% 0.05 85);
-  --color-amber-ink: oklch(35% 0.08 70);
-  --color-amber-border: oklch(88% 0.08 85);
-
-  --color-rose-soft: oklch(95% 0.04 20);
-  --color-rose-hover: oklch(92% 0.05 20);
-  --color-rose-ink: oklch(35% 0.08 15);
-  --color-rose-border: oklch(85% 0.07 20);
-
-  /* Typography */
-  --font-display: 'Epilogue', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body: 'Epilogue', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-outlier: 'IBM Plex Mono', ui-monospace, monospace;
-
-  --tracking-display: -0.035em;
-  --display-weight: 700;
-  --rule-hair: 1px;
-
-  --radius-card: 16px;
-  --radius-pill: 9999px;
-  --radius-input: 10px;
-
-  --shadow-subtle: 0 1px 3px oklch(16% 0 0 / 0.05);
-  --shadow-floating: 0 20px 40px -15px oklch(16% 0 0 / 0.12);
-}
-
-/* Hallmark Floor: overflow-x: clip on both html and body */
-html, body {
-  overflow-x: clip;
-  font-family: var(--font-body);
-  background-color: var(--color-paper-2);
-  color: var(--color-ink);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  line-height: 1.6;
-}
-
-/* Headlines */
-h1, h2, h3, h4 {
-  font-family: var(--font-display);
-  font-weight: var(--display-weight);
-  letter-spacing: var(--tracking-display);
-  color: var(--color-ink);
-=======
 /* SARGA mockup stylesheet
    Direction: civic inventory registry. Paper and ink, one teal accent for availability.
    Dials: ENERGY 1, RHYTHM 2, MOTION 1. Type: Epilogue (local) with system fallback. */
@@ -221,18 +145,10 @@ h4 {
   font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: -0.03em;
->>>>>>> 6b9b3ab (Update mockup: integrasi alur SRS dan perbaikan UI)
   line-height: 1.15;
   text-wrap: balance;
 }
 
-<<<<<<< HEAD
-/* Container Capped and Centered (Hallmark Floor #14) */
-.sarga-container {
-  max-width: 1140px;
-  margin-left: auto;
-  margin-right: auto;
-=======
 h1 {
   font-size: clamp(1.75rem, 3.6vw, 2.5rem);
 }
@@ -321,28 +237,17 @@ summary:focus-visible {
   width: 100%;
   max-width: 1140px;
   margin: 0 auto;
->>>>>>> 6b9b3ab (Update mockup: integrasi alur SRS dan perbaikan UI)
   padding-left: 1.25rem;
   padding-right: 1.25rem;
 }
 
 @media (min-width: 768px) {
-<<<<<<< HEAD
-  .sarga-container {
-=======
   .wrap {
->>>>>>> 6b9b3ab (Update mockup: integrasi alur SRS dan perbaikan UI)
     padding-left: 2rem;
     padding-right: 2rem;
   }
 }
 
-<<<<<<< HEAD
-/* Ink Theme Surfaces */
-.surface-card {
-  background-color: var(--color-paper);
-  border: var(--rule-hair) solid var(--color-rule);
-=======
 /* Header */
 
 .site-header {
@@ -859,221 +764,10 @@ summary:focus-visible {
 .panel {
   background: var(--color-paper);
   border: 1px solid var(--color-rule);
->>>>>>> 6b9b3ab (Update mockup: integrasi alur SRS dan perbaikan UI)
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-subtle);
 }
 
-<<<<<<< HEAD
-.surface-well {
-  background-color: var(--color-paper-3);
-  border: var(--rule-hair) solid var(--color-rule);
-  border-radius: var(--radius-card);
-}
-
-.surface-floating {
-  background-color: var(--color-paper);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-floating);
-}
-
-/* Hairline Ruled Tables and Lists */
-.ruled-table {
-  width: 100%;
-  border-collapse: collapse;
-  border-top: 1.5px solid var(--color-rule-dark);
-}
-
-.ruled-table th {
-  padding: 0.85rem 1rem;
-  font-size: 0.825rem;
-  font-weight: 600;
-  color: var(--color-muted);
-  text-align: left;
-  border-bottom: 1px solid var(--color-rule);
-  background-color: var(--color-paper-2);
-}
-
-.ruled-table td {
-  padding: 1rem;
-  font-size: 0.925rem;
-  border-bottom: 1px solid var(--color-rule);
-}
-
-.ruled-table tr:hover td {
-  background-color: var(--color-paper);
-}
-
-/* Photographic Slot with Hallmark Muted Treatment */
-.photo-frame {
-  position: relative;
-  overflow: hidden;
-  border-radius: 12px;
-  border: var(--rule-hair) solid var(--color-rule);
-  background-color: var(--color-paper-2);
-}
-
-.photo-frame img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: saturate(0.85) contrast(0.98);
-}
-
-/* Interactive Focus Visibility (Hallmark Floor #6) */
-a:focus-visible,
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
-}
-
-/* Micro-transitions restricted to safe properties (Hallmark Floor #2) */
-.btn, .nav-link, .tag {
-  transition-property: background-color, border-color, color, box-shadow, transform;
-  transition-duration: 140ms;
-  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Buttons - Hallmark Restrained Pair */
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.4rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-paper);
-  background-color: var(--color-ink);
-  border: 1px solid var(--color-ink);
-  border-radius: 10px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.btn-primary:hover {
-  background-color: var(--color-ink-hover);
-  border-color: var(--color-ink-hover);
-}
-
-.btn-primary:active {
-  transform: scale(0.985);
-}
-
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.4rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-ink);
-  background-color: var(--color-paper);
-  border: 1px solid var(--color-rule-2);
-  border-radius: 10px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.btn-secondary:hover {
-  background-color: var(--color-paper-2);
-  border-color: var(--color-muted);
-}
-
-.btn-secondary:active {
-  transform: scale(0.985);
-}
-
-.btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-danger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.4rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--color-rose-ink);
-  background-color: var(--color-rose-soft);
-  border: 1px solid var(--color-rose-border);
-  border-radius: 10px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.btn-danger:hover {
-  background-color: var(--color-rose-hover);
-}
-
-.btn-danger:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Tags and State Pills (Hallmark Ink Spec) */
-.tag-in {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-accent-soft-ink);
-  background-color: var(--color-accent-soft);
-  border: 1px solid var(--color-accent-border);
-  border-radius: var(--radius-pill);
-}
-
-.tag-out {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--color-muted);
-  background-color: var(--color-paper-2);
-  border: 1px solid var(--color-rule);
-  border-radius: var(--radius-pill);
-}
-
-.tag-waiting {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.75rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-amber-ink);
-  background-color: var(--color-amber-soft);
-  border: 1px solid var(--color-amber-border);
-  border-radius: var(--radius-pill);
-}
-
-/* High-Legibility Form Inputs */
-.form-input {
-  width: 100%;
-  padding: 0.8rem 1rem;
-  font-size: 1rem;
-  color: var(--color-ink);
-  background-color: var(--color-paper);
-  border: 1px solid var(--color-rule-2);
-  border-radius: var(--radius-input);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-=======
 .panel-pad {
   padding: 1.25rem;
 }
@@ -1373,7 +1067,6 @@ textarea:focus-visible {
 
 .form-input::placeholder {
   color: #64748b;
->>>>>>> 6b9b3ab (Update mockup: integrasi alur SRS dan perbaikan UI)
 }
 
 .form-input:focus {
@@ -1382,74 +1075,6 @@ textarea:focus-visible {
   outline: none;
 }
 
-<<<<<<< HEAD
-.form-input:disabled {
-  background-color: var(--color-paper-3);
-  color: var(--color-muted);
-  cursor: not-allowed;
-}
-
-/* Selection Highlight */
-::selection {
-  background-color: var(--color-accent-soft);
-  color: var(--color-accent-soft-ink);
-}
-
-/* Accessible Nav Tab (Tactile boundary & high contrast for elderly users) */
-.nav-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  border-radius: 0.75rem;
-  min-height: 44px;
-  cursor: pointer;
-  transition: background-color 140ms cubic-bezier(0.16, 1, 0.3, 1), 
-              border-color 140ms cubic-bezier(0.16, 1, 0.3, 1), 
-              color 140ms cubic-bezier(0.16, 1, 0.3, 1), 
-              box-shadow 140ms cubic-bezier(0.16, 1, 0.3, 1);
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-a.nav-tab.nav-tab-inactive {
-  background-color: #ffffff;
-  color: var(--color-ink-2);
-  border: 1px solid #cbd5e1;
-}
-
-a.nav-tab.nav-tab-inactive:hover {
-  background-color: #f1f5f9;
-  color: var(--color-ink);
-  border-color: #94a3b8;
-}
-
-a.nav-tab.nav-tab-active {
-  background-color: #065f46;
-  color: #ffffff;
-  border: 1px solid #044e39;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-}
-
-a.nav-tab.nav-tab-active:hover {
-  background-color: #044e39;
-  color: #ffffff;
-}
-
-a.nav-tab.nav-tab-active svg {
-  color: #ffffff;
-}
-
-a.nav-tab.nav-tab-inactive svg {
-  color: #065f46;
-}
-
-/* Reduced motion preference */
-@media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after {
-=======
 .form-input[aria-invalid='true'] {
   border-color: var(--color-rose-ink);
 }
@@ -2940,7 +2565,6 @@ body.modal-open {
   *,
   *::before,
   *::after {
->>>>>>> 6b9b3ab (Update mockup: integrasi alur SRS dan perbaikan UI)
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -2948,8 +2572,6 @@ body.modal-open {
   }
 }
 
-<<<<<<< HEAD
-=======
 @media print {
   .site-header,
   .crumb-bar,
@@ -2963,4 +2585,3 @@ body.modal-open {
     background: #ffffff;
   }
 }
->>>>>>> 6b9b3ab (Update mockup: integrasi alur SRS dan perbaikan UI)
