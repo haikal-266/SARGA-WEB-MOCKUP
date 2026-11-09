@@ -12,7 +12,6 @@ function itemCard(item) {
         <span class="photo-badge">${tag(item.status)}</span>
       </div>
       <div class="item-body">
-        <p class="item-cat">${esc(item.category)}</p>
         <h3 class="item-title"><a href="#/detail-barang?id=${esc(item.id)}">${esc(item.name)}</a></h3>
         <p class="item-desc">${esc(item.description)}</p>
         <dl class="meta-list">
@@ -32,16 +31,15 @@ function catalogSource() {
 function catalogResults() {
   const query = catalogState.query.trim().toLowerCase();
   return catalogSource().filter((item) => {
-    const matchCategory = catalogState.category === 'Semua' || item.category === catalogState.category;
-    const haystack = `${item.name} ${item.description} ${item.category} ${item.code}`.toLowerCase();
-    return matchCategory && (!query || haystack.includes(query));
+    const haystack = `${item.name} ${item.description} ${item.code}`.toLowerCase();
+    return !query || haystack.includes(query);
   });
 }
 
 function catalogGridHtml() {
   const results = catalogResults();
   if (!results.length) {
-    return `<div class="empty"><p class="empty-title">Tidak ada alat yang cocok</p><p class="empty-body">Coba kata kunci lain atau tampilkan semua kategori.</p><button class="btn-secondary" type="button" data-action="reset-catalog">Tampilkan semua</button></div>`;
+    return `<div class="empty"><p class="empty-title">Tidak ada alat yang cocok</p><p class="empty-body">Coba kata kunci pencarian lain.</p><button class="btn-secondary" type="button" data-action="reset-catalog">Tampilkan semua</button></div>`;
   }
   return results.map(itemCard).join('');
 }
@@ -50,9 +48,6 @@ function refreshCatalog() {
   const grid = document.getElementById('catalog-grid');
   if (!grid) return;
   grid.innerHTML = catalogGridHtml();
-  document.querySelectorAll('[data-filter-cat]').forEach((button) => {
-    button.classList.toggle('chip-active', button.dataset.filterCat === catalogState.category);
-  });
   const count = document.getElementById('catalog-count');
   if (count) count.textContent = `${catalogResults().length} alat ditampilkan`;
 }
@@ -60,12 +55,7 @@ function refreshCatalog() {
 function renderKatalog() {
   const org = currentOrg();
   const source = catalogSource();
-  catalogState = { category: 'Semua', query: '' };
-
-  const categories = CATEGORIES.map((category) => {
-    const count = source.filter((item) => item.category === category).length;
-    return `<button class="chip ${category === 'Semua' ? 'chip-active' : ''}" type="button" data-filter-cat="${esc(category)}">${esc(category)} <small>${count}</small></button>`;
-  }).join('');
+  catalogState = { query: '' };
 
   return `
     <div class="page page-wide">
@@ -79,11 +69,7 @@ function renderKatalog() {
       <div class="toolbar">
         <div class="search-row">
           <label class="sr-only" for="catalog-search">Cari barang</label>
-          <input class="form-input" id="catalog-search" type="search" placeholder="Cari nama alat, kategori, atau kode" autocomplete="off">
-        </div>
-        <div class="chips" role="group" aria-label="Filter kategori">
-          <button class="chip chip-active" type="button" data-filter-cat="Semua">Semua <small>${source.length}</small></button>
-          ${categories}
+          <input class="form-input" id="catalog-search" type="search" placeholder="Cari nama alat atau kode barang" autocomplete="off">
         </div>
         <p class="tiny muted" id="catalog-count" aria-live="polite">${source.length} alat ditampilkan</p>
       </div>
@@ -126,7 +112,7 @@ function renderDetailBarang(params) {
       ${pageHead({
         kicker: 'Peminjam · FR-PJ-03',
         title: item.name,
-        lede: `${esc(item.category)} · kode ${esc(item.code)}`,
+        lede: `Kode barang ${esc(item.code)}`,
         actions: `${canEdit ? `<a class="btn-secondary" href="#/edit-barang?id=${esc(item.id)}">Ubah barang</a>` : ''}<a class="btn-secondary" href="#/katalog">Kembali ke katalog</a>`
       })}
 
@@ -146,7 +132,6 @@ function renderDetailBarang(params) {
           <div class="panel panel-pad">
             <div class="item-head">
               <div>
-                <p class="kicker">${esc(item.category)}</p>
                 <h2 style="font-size:1.3rem">${esc(item.name)}</h2>
               </div>
               ${tag(item.status)}
@@ -192,7 +177,6 @@ function loanSummaryHtml(item) {
   return `
     <img class="detail-photo" src="${esc(item.image)}" alt="" style="aspect-ratio:16/9;width:100%;object-fit:cover;margin-bottom:.8rem" onerror="this.src='img/placeholder-item.svg'">
     <h2 style="font-size:1.05rem">${esc(item.name)}</h2>
-    <p class="small muted" style="margin-top:.2rem">${esc(item.category)}</p>
     <dl class="definition-list" style="margin-top:.9rem">
       <div><dt>Pemilik</dt><dd>${esc(owner ? owner.name : 'Aset organisasi')}</dd></div>
       <div><dt>Maksimal pinjam</dt><dd>${item.maxDays} hari</dd></div>
@@ -375,7 +359,7 @@ function myItemCard(item) {
       <div class="item-head" style="margin-bottom:.65rem;padding-bottom:.65rem">
         <div>
           <span class="cell-main"><a href="#/detail-barang?id=${esc(item.id)}">${esc(item.name)}</a></span>
-          <span class="cell-sub">${esc(item.category)} · ${esc(item.code)}</span>
+          <span class="cell-sub">Kode barang: ${esc(item.code)}</span>
         </div>
         ${tag(item.status)}
       </div>
@@ -456,17 +440,9 @@ function itemForm(item, mode) {
         <input class="form-input" id="item-name" name="name" value="${esc(item.name)}" required>
         <p class="hint">Tulis merek dan ukuran bila penting, misalnya "Bor listrik impact 13 mm".</p>
       </div>
-      <div class="form-grid two">
-        <div class="field">
-          <label class="label" for="item-category">Kategori</label>
-          <select class="form-input" id="item-category" name="category" required>
-            ${CATEGORIES.map((category) => `<option value="${esc(category)}" ${category === item.category ? 'selected' : ''}>${esc(category)}</option>`).join('')}
-          </select>
-        </div>
-        <div class="field">
-          <label class="label" for="item-days">Maksimal hari pinjam</label>
-          <input class="form-input" id="item-days" name="maxDays" type="number" min="1" max="14" value="${esc(item.maxDays)}" required>
-        </div>
+      <div class="field">
+        <label class="label" for="item-days">Maksimal hari pinjam</label>
+        <input class="form-input" id="item-days" name="maxDays" type="number" min="1" max="14" value="${esc(item.maxDays)}" required>
       </div>
       <div class="field">
         <label class="label" for="item-location">Lokasi pengambilan</label>
@@ -498,7 +474,7 @@ function renderTambahBarang() {
   const me = currentUser();
   if (!me) return emptyPage('Daftarkan barang', 'Masuk sebagai anggota untuk menayangkan barang.');
   const draft = {
-    name: '', category: CATEGORIES[0], maxDays: 3, location: me.address,
+    name: '', maxDays: 3, location: me.address,
     description: '', contents: [], instructions: '', image: 'img/placeholder-item.svg'
   };
   return `

@@ -67,6 +67,191 @@ function openOtpModal() {
     </form>`);
 }
 
+function openMemberDocModal(membershipId) {
+  const membership = store.db.memberships.find((item) => item.id === membershipId);
+  if (!membership) return;
+  const user = store.userById(membership.userId);
+  if (!user) return;
+  const org = store.orgById(membership.orgId);
+  const docImg = membership.documentImage || user.documentImage || 'img/sample-ktp.svg';
+  const docName = membership.documentName || user.documentName || 'Dokumen_Keanggotaan.svg';
+  const docType = membership.documentType || user.documentType || 'KTP / Kartu Identitas';
+  const address = membership.address || user.address || 'Tidak dicantumkan';
+  const docNote = membership.documentNote || user.documentNote || '';
+
+  openModal(`Verifikasi Calon Anggota: ${user.name}`, `
+    <div class="modal-body doc-modal-content">
+      <div class="doc-modal-grid">
+        <div class="doc-modal-info">
+          <div class="item-head" style="margin-bottom:.75rem">
+            <div>
+              <span class="cell-main" style="font-size:1.15rem">${esc(user.name)}</span>
+              <span class="cell-sub">${esc(org ? org.name : 'Organisasi')} · Diajukan ${fmtDate(membership.joinedAt)}</span>
+            </div>
+            ${tag(membership.status)}
+          </div>
+
+          <dl class="profile-list" style="margin-top:.75rem">
+            <div class="profile-row">
+              <dt>Nomor HP / WhatsApp</dt>
+              <dd>
+                <a class="link" href="${waHref(user.wa)}" target="_blank" rel="noopener">
+                  📱 ${esc(user.wa)} ↗ (Hubungi via WA)
+                </a>
+              </dd>
+            </div>
+            <div class="profile-row">
+              <dt>Alamat / Divisi</dt>
+              <dd>${esc(address)}</dd>
+            </div>
+            <div class="profile-row">
+              <dt>Jenis Dokumen</dt>
+              <dd><strong class="text-ink">${esc(docType)}</strong></dd>
+            </div>
+            <div class="profile-row">
+              <dt>Nama Berkas</dt>
+              <dd class="mono small" style="word-break:break-all">${esc(docName)}</dd>
+            </div>
+            ${docNote ? `
+            <div class="profile-row">
+              <dt>Catatan Pemohon</dt>
+              <dd class="italic">${esc(docNote)}</dd>
+            </div>` : ''}
+          </dl>
+
+          <div class="well" style="margin-top:1rem">
+            <p class="small strong">Acuan Pemeriksaan Pengurus</p>
+            <p class="tiny muted" style="margin-top:.25rem">Cocokkan nama lengkap, nomor HP, dan rincian identitas pada foto dokumen di samping dengan catatan keanggotaan ${esc(org ? org.name : 'organisasi')}.</p>
+          </div>
+        </div>
+
+        <div class="doc-modal-preview">
+          <div class="doc-preview-top">
+            <span class="strong small">Foto Dokumen Keanggotaan</span>
+            <a class="tiny link" href="${esc(docImg)}" target="_blank" rel="noopener">Buka Foto Asli ↗</a>
+          </div>
+          <div class="doc-preview-frame">
+            <img class="doc-preview-full" src="${esc(docImg)}" alt="Dokumen ${esc(user.name)}">
+          </div>
+          <p class="tiny muted" style="text-align:center;margin-top:.5rem">Foto KTP / Kartu Anggota yang dilampirkan sebagai bukti verifikasi.</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" type="button" data-action="close-modal">Tutup</button>
+      ${membership.status === 'Menunggu Verifikasi' ? `
+        <button class="btn-danger" type="button" data-action="reject-member" data-id="${esc(membership.id)}">✕ Tolak Pendaftaran</button>
+        <button class="btn-primary" type="button" data-action="approve-member" data-id="${esc(membership.id)}">✓ Setujui Keanggotaan</button>
+      ` : ''}
+    </div>
+  `, true);
+}
+
+function openJoinOrgModal(orgId, inviteCode) {
+  const me = currentUser();
+  if (!me) return;
+  const org = store.orgById(orgId);
+  if (!org) return;
+
+  const defaultDocImg = me.documentImage || 'img/sample-kartu-anggota.svg';
+  const defaultDocName = me.documentName || 'Kartu_Anggota_Calon.svg';
+
+  openModal('Formulir Data Diri Calon Anggota', `
+    <form data-form="submit-join-org" novalidate>
+      <div class="modal-body" style="padding:1.25rem;max-height:75vh;overflow-y:auto">
+        <div class="alert alert-info" style="margin-bottom:1rem">
+          <strong>Pendaftaran ke ${esc(org.name)}</strong>
+          <p style="margin-top:.25rem">Pengurus akan memeriksa data diri dan foto bukti keanggotaan sebelum menyetujui akses Anda. Tidak perlu kata sandi baru karena Anda sudah memiliki akun.</p>
+        </div>
+
+        <input type="hidden" name="orgId" value="${esc(org.id)}">
+        <input type="hidden" name="invite" value="${esc(inviteCode || org.inviteCode)}">
+        <input type="hidden" id="join-document-data" name="documentData" value="${esc(defaultDocImg)}">
+        <input type="hidden" id="join-document-name" name="documentName" value="${esc(defaultDocName)}">
+
+        <div class="field">
+          <label class="label" for="join-name">Nama lengkap</label>
+          <input class="form-input" id="join-name" name="name" value="${esc(me.name)}" required>
+          <p class="hint">Nama yang tertera pada identitas resmi atau catatan keanggotaan.</p>
+        </div>
+
+        <div class="field">
+          <label class="label" for="join-wa">Nomor HP / WhatsApp</label>
+          <input class="form-input" id="join-wa" name="wa" type="tel" value="${esc(me.wa)}" required>
+          <p class="hint">Nomor aktif untuk verifikasi dan konfirmasi pengurus ${esc(org.name)}.</p>
+        </div>
+
+        <div class="field">
+          <label class="label" for="join-address">Alamat / Divisi / Unit Kerja</label>
+          <input class="form-input" id="join-address" name="address" value="${esc(me.address || '')}" placeholder="Contoh: Divisi Operasional / Blok C No. 04" required>
+          <p class="hint">Lokasi tempat tinggal atau unit divisi Anda di lingkungan ${esc(org.name)}.</p>
+        </div>
+
+        <div class="field">
+          <label class="label" for="join-doc-type">Jenis bukti keanggotaan</label>
+          <select class="form-input" id="join-doc-type" name="documentType">
+            <option value="Kartu Tanda Anggota (KTA)">Kartu Tanda Anggota (KTA)</option>
+            <option value="KTP (Kartu Tanda Penduduk)">KTP (Kartu Tanda Penduduk)</option>
+            <option value="Kartu Identitas Karyawan">Kartu Identitas Pegawai / Karyawan</option>
+            <option value="Surat Rekomendasi Pengurus">Surat Pengantar / Rekomendasi</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="label" for="join-document">Unggah foto bukti keanggotaan</label>
+          <input class="form-input" id="join-document" name="document" type="file" accept="image/*,.pdf">
+          <div style="margin-top:.4rem;display:flex;gap:.5rem;flex-wrap:wrap">
+            <span class="tiny muted" style="align-self:center">Pilih cepat demo:</span>
+            <button class="btn-pill" type="button" data-action="use-sample-kta">Gunakan Contoh KTA</button>
+            <button class="btn-pill" type="button" data-action="use-sample-ktp">Gunakan Contoh KTP</button>
+          </div>
+        </div>
+
+        <div class="doc-preview-box">
+          <div class="doc-preview-header">
+            <span class="small strong">Pratinjau Foto Dokumen</span>
+            <span class="tag tag-in" id="join-doc-status-tag">Dokumen Siap Dikirim</span>
+          </div>
+          <div class="doc-preview-img-wrap">
+            <img id="join-doc-preview-img" src="${esc(defaultDocImg)}" alt="Pratinjau Dokumen">
+          </div>
+          <p class="tiny muted" id="join-doc-filename-display" style="margin-top:.4rem">Berkas: ${esc(defaultDocName)}</p>
+        </div>
+
+        <div class="field" style="margin-top:.75rem">
+          <label class="label" for="join-doc-note">Catatan untuk pengurus (opsional)</label>
+          <input class="form-input" id="join-doc-note" name="documentNote" placeholder="Contoh: Anggota aktif divisi timur sejak 2024">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" type="button" data-action="close-modal">Batal</button>
+        <button class="btn-primary form-submit" type="submit">Kirim Formulir & Dokumen</button>
+      </div>
+    </form>
+  `, true);
+}
+
+function openMyDocModal() {
+  const user = currentUser();
+  if (!user) return;
+  const docImg = user.documentImage || 'img/sample-ktp.svg';
+  const docName = user.documentName || 'Dokumen_Keanggotaan.svg';
+  const docType = user.documentType || 'KTP / Kartu Identitas';
+
+  openModal('Dokumen Pendaftaran Saya', `
+    <div class="modal-body">
+      <p class="small">Berikut adalah foto dokumen identitas yang Anda lampirkan sebagai acuan verifikasi pengurus:</p>
+      <div class="doc-preview-frame" style="margin-top:1rem;max-height:420px">
+        <img class="doc-preview-full" src="${esc(docImg)}" alt="Dokumen ${esc(user.name)}">
+      </div>
+      <p class="small" style="margin-top:.75rem"><strong>Jenis:</strong> ${esc(docType)} · <strong>Berkas:</strong> <span class="mono">${esc(docName)}</span></p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" type="button" data-action="close-modal">Tutup</button>
+    </div>
+  `, true);
+}
+
 function openRejectMemberModal(membershipId) {
   const membership = store.db.memberships.find((item) => item.id === membershipId);
   if (!membership) return;
@@ -204,29 +389,41 @@ function handleFormSubmit(event) {
   }
 
   if (type === 'register') {
+    const invite = formValue(form, 'invite').trim().toUpperCase();
     const name = formValue(form, 'name');
     const wa = normalizeWa(formValue(form, 'wa'));
+    const address = formValue(form, 'address');
     const password = formValue(form, 'password');
-    const invite = formValue(form, 'invite');
-    if (name.length < 3) return formError(form, 'Isi nama lengkap minimal 3 karakter.', 'name');
+    const documentType = formValue(form, 'documentType') || 'KTP (Kartu Tanda Penduduk)';
+    const documentData = formValue(form, 'documentData') || 'img/sample-ktp.svg';
+    const documentNote = formValue(form, 'documentNote') || `Diunggah saat pendaftaran mandiri (${documentType}).`;
+
+    const org = store.orgByInvite(invite);
+    if (!org) return formError(form, 'Kode undangan organisasi tidak valid atau sudah kedaluwarsa. Periksa kembali.', 'invite');
+    if (name.length < 3) return formError(form, 'Isi nama lengkap minimal 3 karakter sesuai identitas.', 'name');
     if (wa.length < 9) return formError(form, 'Nomor WhatsApp belum lengkap.', 'wa');
     if (password.length < 6) return formError(form, 'Kata sandi minimal 6 karakter.', 'password');
     if (store.userByWa(wa)) return formError(form, 'Nomor WhatsApp ini sudah terdaftar. Silakan masuk.', 'wa');
-    const org = store.orgByInvite(invite);
-    if (!org) return formError(form, 'Kode undangan tidak valid atau sudah kedaluwarsa.', 'invite');
 
     const documentField = form.elements.namedItem('document');
-    const documentName = documentField && documentField.files && documentField.files[0] ? documentField.files[0].name : '';
+    let documentName = formValue(form, 'documentName');
+    if (documentField && documentField.files && documentField.files[0]) {
+      documentName = documentField.files[0].name;
+    }
+    if (!documentName) documentName = 'KTP_Agus_Setiawan_Demo.svg';
+
     const user = {
       id: store.nextId('u'),
       name,
       wa,
       password,
-      address: '',
+      address,
       status: 'Menunggu Verifikasi',
       createdAt: todayISO(),
+      documentType,
       documentName,
-      documentNote: documentName ? 'Dokumen pendukung diunggah saat pendaftaran.' : ''
+      documentImage: documentData,
+      documentNote
     };
     store.db.users.push(user);
     store.db.memberships.push({
@@ -241,14 +438,14 @@ function handleFormSubmit(event) {
     store.addAudit({
       orgId: org.id,
       actorId: user.id,
-      action: 'Mengajukan keanggotaan',
+      action: 'Mengajukan keanggotaan & verifikasi',
       target: user.name,
-      note: 'Pendaftaran mandiri memakai kode undangan.'
+      note: `Kode undangan ${org.inviteCode}, dokumen ${documentType}.`
     });
     store.persist();
     session = { userId: user.id, orgId: org.id };
     saveSession();
-    toast('Pendaftaran terkirim', `Pengurus ${org.name} akan memeriksa data Anda.`, 'success');
+    toast('Pendaftaran & dokumen terkirim', `Pengurus ${org.name} akan memeriksa dokumen verifikasi Anda.`, 'success');
     navigate('#/status-akun');
     return;
   }
@@ -311,7 +508,6 @@ function handleFormSubmit(event) {
     if (isEdit && item.ownerId !== me.id && !isOrgAdmin()) return formError(form, 'Anda tidak punya akses mengubah barang ini.');
 
     const name = formValue(form, 'name');
-    const category = formValue(form, 'category');
     const maxDays = Number(formValue(form, 'maxDays'));
     const location = formValue(form, 'location');
     const description = formValue(form, 'description');
@@ -320,7 +516,6 @@ function handleFormSubmit(event) {
     const contents = formValue(form, 'contents').split('\n').map((line) => line.trim()).filter(Boolean);
 
     if (name.length < 4) return formError(form, 'Nama barang minimal 4 karakter.', 'name');
-    if (!CATEGORIES.includes(category)) return formError(form, 'Pilih kategori yang tersedia.', 'category');
     if (!Number.isFinite(maxDays) || maxDays < 1 || maxDays > 14) return formError(form, 'Maksimal pinjam antara 1 sampai 14 hari.', 'maxDays');
     if (location.length < 3) return formError(form, 'Isi lokasi pengambilan.', 'location');
     if (description.length < 10) return formError(form, 'Deskripsi minimal 10 karakter.', 'description');
@@ -328,7 +523,6 @@ function handleFormSubmit(event) {
 
     if (isEdit) {
       item.name = name;
-      item.category = category;
       item.maxDays = maxDays;
       item.location = location;
       item.description = description;
@@ -348,7 +542,6 @@ function handleFormSubmit(event) {
         orgId: org.id,
         ownerId: me.id,
         name,
-        category,
         maxDays,
         location,
         status: 'Tersedia',
@@ -405,12 +598,12 @@ function handleFormSubmit(event) {
       id: store.nextId('m'),
       orgId: org.id,
       userId: me.id,
-      role: 'Org Admin',
+      role: 'Pengurus',
       position: 'Ketua',
       status: 'Aktif',
       joinedAt: todayISO()
     });
-    store.addAudit({ orgId: org.id, actorId: me.id, action: 'Membuat organisasi', target: org.name, note: `${me.name} menjadi Org Admin pertama.` });
+    store.addAudit({ orgId: org.id, actorId: me.id, action: 'Membuat organisasi', target: org.name, note: `${me.name} menjadi Pengurus pertama.` });
     store.persist();
     session.orgId = org.id;
     saveSession();
@@ -474,9 +667,9 @@ function handleFormSubmit(event) {
     if (!ROLE_OPTIONS.includes(role)) return formError(form, 'Pilih peran yang valid.', 'role');
     if (!MEMBER_STATUSES.includes(status)) return formError(form, 'Pilih status yang valid.', 'status');
     if (membership.userId === currentUser().id && status !== 'Aktif') return formError(form, 'Anda tidak bisa menonaktifkan akun sendiri.');
-    if (membership.role === 'Org Admin' && role !== 'Org Admin') {
-      const admins = store.membersOf(membership.orgId).filter((m) => m.role === 'Org Admin' && m.status === 'Aktif');
-      if (admins.length <= 1) return formError(form, 'Organisasi harus punya minimal satu Org Admin aktif. Angkat anggota lain terlebih dahulu.');
+    if ((membership.role === 'Pengurus' || membership.role === 'Org Admin') && role !== 'Pengurus') {
+      const admins = store.membersOf(membership.orgId).filter((m) => (m.role === 'Pengurus' || m.role === 'Org Admin') && m.status === 'Aktif');
+      if (admins.length <= 1) return formError(form, 'Organisasi harus punya minimal satu Pengurus aktif. Angkat anggota lain terlebih dahulu.');
     }
     membership.role = role;
     membership.position = position;
@@ -514,9 +707,39 @@ function handleFormSubmit(event) {
 
   if (type === 'join-org') {
     const me = currentUser();
-    const org = store.orgByInvite(formValue(form, 'invite'));
+    if (!me) return formError(form, 'Sesi tidak ditemukan. Masuk ulang.');
+    const invite = formValue(form, 'invite').trim().toUpperCase();
+    const org = store.orgByInvite(invite);
     if (!org) return formError(form, 'Kode undangan tidak valid atau sudah kedaluwarsa.', 'invite');
     if (store.membership(me.id, org.id)) return formError(form, 'Anda sudah terdaftar di organisasi ini.', 'invite');
+    openJoinOrgModal(org.id, invite);
+    return;
+  }
+
+  if (type === 'submit-join-org') {
+    const me = currentUser();
+    if (!me) return formError(form, 'Sesi tidak ditemukan. Masuk ulang.');
+    const orgId = formValue(form, 'orgId');
+    const org = store.orgById(orgId);
+    if (!org) return formError(form, 'Organisasi tidak valid.');
+
+    const name = formValue(form, 'name').trim();
+    const wa = normalizeWa(formValue(form, 'wa'));
+    const address = formValue(form, 'address').trim();
+    const documentType = formValue(form, 'documentType') || 'Kartu Tanda Anggota (KTA)';
+    const documentData = formValue(form, 'documentData') || me.documentImage || 'img/sample-kartu-anggota.svg';
+    let documentName = formValue(form, 'documentName') || me.documentName || 'Dokumen_Keanggotaan.svg';
+    const documentNote = formValue(form, 'documentNote') || `Formulir pengajuan gabung organisasi ${org.name}.`;
+
+    if (name.length < 3) return formError(form, 'Isi nama lengkap minimal 3 karakter.', 'name');
+    if (wa.length < 9) return formError(form, 'Nomor WhatsApp belum lengkap.', 'wa');
+    if (address.length < 3) return formError(form, 'Isi alamat / divisi / unit kerja.', 'address');
+
+    const documentField = form.elements.namedItem('document');
+    if (documentField && documentField.files && documentField.files[0]) {
+      documentName = documentField.files[0].name;
+    }
+
     store.db.memberships.push({
       id: store.nextId('m'),
       orgId: org.id,
@@ -524,18 +747,32 @@ function handleFormSubmit(event) {
       role: 'Anggota',
       position: 'Anggota',
       status: 'Menunggu Verifikasi',
-      joinedAt: todayISO()
+      joinedAt: todayISO(),
+      documentType,
+      documentName,
+      documentImage: documentData,
+      documentNote,
+      address
     });
-    store.addAudit({ orgId: org.id, actorId: me.id, action: 'Mengajukan keanggotaan', target: me.name, note: 'Bergabung lewat kode undangan.' });
+
+    store.addAudit({
+      orgId: org.id,
+      actorId: me.id,
+      action: 'Mengajukan formulir keanggotaan',
+      target: me.name,
+      note: `Kode ${org.inviteCode}, dokumen ${documentType}.`
+    });
     store.persist();
+
+    closeModal();
     const hasActive = store.membershipsOfUser(me.id).some((m) => m.status === 'Aktif' && m.orgId !== org.id);
     if (!hasActive) {
       session.orgId = org.id;
       saveSession();
-      toast('Menunggu verifikasi', `Pengurus ${org.name} akan memeriksa keanggotaan Anda.`, 'success');
+      toast('Formulir & Dokumen Terkirim', `Pengurus ${org.name} akan memeriksa data Anda.`, 'success');
       navigate('#/status-akun');
     } else {
-      toast('Pengajuan terkirim', `Keanggotaan di ${org.name} menunggu persetujuan pengurus.`, 'success');
+      toast('Formulir & Dokumen Terkirim', `Pengajuan di ${org.name} sedang diverifikasi pengurus.`, 'success');
       render();
     }
     return;
@@ -607,7 +844,7 @@ function handleFormSubmit(event) {
       const position = form.elements.namedItem(`position-${membership.id}`) ? String(form.elements.namedItem(`position-${membership.id}`).value).trim() : membership.position;
       return { membership, role, position };
     });
-    if (!proposed.some((entry) => entry.role === 'Org Admin')) return formError(form, 'Minimal satu anggota harus menjadi Org Admin.');
+    if (!proposed.some((entry) => entry.role === 'Pengurus' || entry.role === 'Org Admin')) return formError(form, 'Minimal satu anggota harus menjadi Pengurus.');
     const me = currentUser();
     const self = proposed.find((entry) => entry.membership.userId === me.id);
     if (self && self.role === 'Anggota') return formError(form, 'Anda tidak bisa menurunkan peran akun sendiri menjadi Anggota.');

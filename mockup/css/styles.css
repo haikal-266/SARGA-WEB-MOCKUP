@@ -4,28 +4,28 @@
 
 @font-face {
   font-family: 'Epilogue';
-  src: url('fonts/epilogue-400.ttf') format('truetype');
+  src: url('../fonts/epilogue-400.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'Epilogue';
-  src: url('fonts/epilogue-500.ttf') format('truetype');
+  src: url('../fonts/epilogue-500.ttf') format('truetype');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'Epilogue';
-  src: url('fonts/epilogue-600.ttf') format('truetype');
+  src: url('../fonts/epilogue-600.ttf') format('truetype');
   font-weight: 600;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: 'Epilogue';
-  src: url('fonts/epilogue-700.ttf') format('truetype');
+  src: url('../fonts/epilogue-700.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -2558,6 +2558,204 @@ body.modal-open {
   }
   .demo-dock select {
     width: calc(100vw - 3rem);
+  }
+}
+
+/* Document Verification & Registration Flow */
+
+.pending-card-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .pending-card-layout {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+.doc-thumb-preview {
+  position: relative;
+  display: block;
+  flex: 0 0 130px;
+  width: 130px;
+  height: 90px;
+  padding: 0;
+  border: 1px solid var(--color-rule-2);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--color-paper-2);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.doc-thumb-preview:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-teal);
+  box-shadow: var(--shadow-floating);
+}
+
+.doc-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.doc-thumb-tag {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 2px 4px;
+  background: rgba(15, 23, 42, 0.85);
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.pending-card-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.badge-doc-type {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  margin-right: 0.5rem;
+}
+
+/* Document Modal Grid */
+.doc-modal-content {
+  padding: 1.25rem;
+}
+
+.doc-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .doc-modal-grid {
+    grid-template-columns: 1.1fr 1fr;
+  }
+}
+
+.doc-modal-preview {
+  display: flex;
+  flex-direction: column;
+}
+
+.doc-preview-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.doc-preview-frame {
+  border: 2px solid var(--color-rule-2);
+  border-radius: 12px;
+  background: #0f172a;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.doc-preview-full {
+  width: 100%;
+  height: auto;
+  max-height: 380px;
+  object-fit: contain;
+  display: block;
+}
+
+/* Registration Form Step 2 Locking */
+.form-section-locked {
+  opacity: 0.45;
+  pointer-events: none;
+  filter: grayscale(0.3);
+  transition: opacity 0.25s ease, filter 0.25s ease;
+}
+
+.btn-pill {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--color-paper-2);
+  color: var(--color-ink);
+  border: 1px solid var(--color-rule-2);
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-pill:hover {
+  background: var(--color-paper-3);
+  border-color: var(--color-ink);
+}
+
+.doc-preview-box {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px dashed var(--color-rule-2);
+  border-radius: var(--radius-card);
+  background: var(--color-paper-2);
+}
+
+.doc-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.doc-preview-img-wrap {
+  width: 100%;
+  max-width: 320px;
+  max-height: 180px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--color-rule);
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.doc-preview-img-wrap img {
+  width: 100%;
+  height: 100%;
+  max-height: 180px;
+  object-fit: cover;
+}
+
+.doc-registered-row,
+.doc-submitted-flex {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .doc-registered-row,
+  .doc-submitted-flex {
+    flex-direction: row;
+    align-items: flex-start;
   }
 }
 

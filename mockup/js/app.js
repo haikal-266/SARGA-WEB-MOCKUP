@@ -8,17 +8,8 @@
 const store = window.SARGA_DB;
 const SESSION_KEY = 'sarga_session_v1';
 
-const CATEGORIES = [
-  'Pertukangan & perbaikan',
-  'Perkakas tangan',
-  'Kebun & halaman',
-  'Kemping & luar ruangan',
-  'Elektronik & kabel',
-  'Aset bersama organisasi'
-];
-
 const ORG_TYPES = ['RT/RW', 'Komunitas', 'Kantor', 'Sekolah', 'Lainnya'];
-const ROLE_OPTIONS = ['Org Admin', 'Pengurus', 'Anggota'];
+const ROLE_OPTIONS = ['Pengurus', 'Anggota'];
 const MEMBER_STATUSES = ['Aktif', 'Menunggu Verifikasi', 'Ditolak', 'Nonaktif'];
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 const IMAGE_OPTIONS = [
@@ -106,7 +97,7 @@ function hasActiveMembership() {
 /* View state                                                          */
 /* ------------------------------------------------------------------ */
 
-let catalogState = { category: 'Semua', query: '' };
+let catalogState = { query: '' };
 let loanTab = 'Semua';
 let memberStatusFilter = 'Semua';
 let memberQuery = '';
@@ -214,7 +205,7 @@ function isOverdue(loan) {
 }
 
 function sortMembers(a, b) {
-  const rank = { 'Org Admin': 0, Pengurus: 1, Anggota: 2 };
+  const rank = { Pengurus: 0, 'Org Admin': 0, Anggota: 1 };
   const diff = (rank[a.role] ?? 3) - (rank[b.role] ?? 3);
   if (diff !== 0) return diff;
   return userName(a.userId).localeCompare(userName(b.userId), 'id');
@@ -716,7 +707,7 @@ function render() {
 
   let pageHtml;
   if (route.access === 'admin' && !isOrgAdmin()) {
-    pageHtml = restrictedBlock('Portal pengurus', 'Masuk sebagai Org Admin atau Pengurus organisasi untuk membuka halaman ini.');
+    pageHtml = restrictedBlock('Portal pengurus', 'Masuk sebagai Pengurus organisasi untuk membuka halaman ini.');
   } else if (route.access === 'platform' && !isPlatformAdmin()) {
     pageHtml = restrictedBlock('Admin platform', 'Halaman ini hanya untuk akun dengan akses admin platform.');
   } else if (route.access === 'admin' && !currentOrg()) {
@@ -733,6 +724,13 @@ function render() {
   renderBreadcrumb(route);
   renderDemoDock();
   closeMobileMenu();
+
+  if (path === '#/daftar') {
+    const inviteInput = document.getElementById('reg-invite');
+    if (inviteInput && inviteInput.value) {
+      inviteInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -765,13 +763,6 @@ function bindEvents() {
     if (actionEl) {
       event.preventDefault();
       handleAction(actionEl.dataset.action, actionEl.dataset, event);
-      return;
-    }
-
-    const categoryButton = event.target.closest('[data-filter-cat]');
-    if (categoryButton) {
-      catalogState.category = categoryButton.dataset.filterCat;
-      refreshCatalog();
       return;
     }
 
@@ -808,12 +799,67 @@ function bindEvents() {
     } else if (target.id === 'directory-search') {
       directoryQuery = target.value;
       refreshDirectory();
+    } else if (target.id === 'reg-invite') {
+      const code = target.value.trim().toUpperCase();
+      const org = store.orgByInvite(code);
+      const statusBox = document.getElementById('reg-invite-status');
+      const profileSection = document.getElementById('reg-profile-section');
+      const submitBtn = document.getElementById('reg-submit-btn');
+      if (statusBox && profileSection) {
+        if (org) {
+          statusBox.innerHTML = `
+            <div class="alert alert-success" style="margin-top:.45rem;padding:.75rem">
+              <strong>✓ Organisasi Ditemukan: ${esc(org.name)}</strong>
+              <p class="small" style="margin-top:.2rem">Jenis: ${esc(org.type)} · Kontak Pengurus: ${esc(org.contact)}</p>
+              <p class="tiny muted" style="margin-top:.25rem">Kode terverifikasi. Formulir data diri di Langkah 2 telah aktif untuk verifikasi pengurus.</p>
+            </div>`;
+          profileSection.classList.remove('form-section-locked');
+          if (submitBtn) submitBtn.disabled = false;
+        } else if (code.length >= 3) {
+          statusBox.innerHTML = `
+            <div class="alert alert-warn" style="margin-top:.45rem;padding:.75rem">
+              <strong>Kode belum cocok</strong>
+              <p class="small" style="margin-top:.2rem">Kode <span class="mono">${esc(code)}</span> tidak ditemukan. Masukkan kode valid dari pengurus.</p>
+            </div>`;
+          profileSection.classList.add('form-section-locked');
+          if (submitBtn) submitBtn.disabled = true;
+        } else {
+          statusBox.innerHTML = '';
+          profileSection.classList.add('form-section-locked');
+          if (submitBtn) submitBtn.disabled = true;
+        }
+      }
     }
   });
 
   document.addEventListener('change', (event) => {
     const target = event.target;
-    if (target.id === 'org-picker') {
+    if (target.id === 'reg-document' || target.id === 'join-document') {
+      const isJoin = target.id === 'join-document';
+      const prefix = isJoin ? 'join-' : 'reg-';
+      if (target.files && target.files[0]) {
+        const file = target.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = e.target.result;
+          const dataInput = document.getElementById(prefix + 'document-data');
+          const nameInput = document.getElementById(prefix + 'document-name');
+          const previewImg = document.getElementById(prefix + 'doc-preview-img');
+          const filenameDisplay = document.getElementById(prefix + 'doc-filename-display');
+          const statusTag = document.getElementById(prefix + 'doc-status-tag');
+          if (dataInput) dataInput.value = dataUrl;
+          if (nameInput) nameInput.value = file.name;
+          if (previewImg) previewImg.src = dataUrl;
+          if (filenameDisplay) filenameDisplay.textContent = `Berkas diunggah: ${file.name} (${Math.round(file.size / 1024)} KB)`;
+          if (statusTag) {
+            statusTag.textContent = 'Foto Berhasil Dimuat';
+            statusTag.className = 'tag tag-in';
+          }
+          toast('Foto berhasil dimuat', 'Dokumen keanggotaan siap diverifikasi pengurus.', 'info');
+        };
+        reader.readAsDataURL(file);
+      }
+    } else if (target.id === 'org-picker') {
       session.orgId = target.value;
       saveSession();
       const org = currentOrg();

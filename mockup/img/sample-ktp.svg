@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="ktpBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="40%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+    <linearGradient id="photoBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#dc2626"/>
+      <stop offset="100%" stop-color="#991b1b"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="115%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0f172a" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Card Body -->
+  <rect x="20" y="20" width="600" height="360" rx="20" fill="url(#ktpBg)" filter="url(#cardShadow)"/>
+  
+  <!-- Subtle Guilloche Grid Pattern Simulation -->
+  <g opacity="0.12" stroke="#ffffff" stroke-width="1">
+    <line x1="20" y1="80" x2="620" y2="80"/>
+    <line x1="20" y1="140" x2="620" y2="140"/>
+    <line x1="20" y1="200" x2="620" y2="200"/>
+    <line x1="20" y1="260" x2="620" y2="260"/>
+    <line x1="20" y1="320" x2="620" y2="320"/>
+    <circle cx="320" cy="200" r="140" fill="none" stroke-width="2"/>
+    <circle cx="320" cy="200" r="100" fill="none" stroke-width="1"/>
+  </g>
+
+  <!-- Header -->
+  <text x="320" y="55" font-family="'Epilogue', 'Segoe UI', Arial, sans-serif" font-size="16" font-weight="800" text-anchor="middle" fill="#ffffff" letter-spacing="2">PROVINSI DKI JAKARTA</text>
+  <text x="320" y="74" font-family="'Epilogue', 'Segoe UI', Arial, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#ffffff" letter-spacing="1.5">KOTA JAKARTA SELATAN</text>
+
+  <!-- NIK -->
+  <text x="60" y="112" font-family="'Courier New', monospace" font-size="18" font-weight="800" fill="#ffffff" letter-spacing="3">NIK&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: 3171052003880004</text>
+
+  <!-- Data Table Fields -->
+  <g font-family="'Epilogue', 'Segoe UI', Arial, sans-serif" font-size="12" font-weight="700" fill="#ffffff">
+    <text x="60" y="142">Nama</text>
+    <text x="180" y="142">:&nbsp; AGUS SETIAWAN, S.T.</text>
+
+    <text x="60" y="166">Tempat/Tgl Lahir</text>
+    <text x="180" y="166">:&nbsp; JAKARTA, 20-03-1988</text>
+
+    <text x="60" y="190">Jenis Kelamin</text>
+    <text x="180" y="190">:&nbsp; LAKI-LAKI</text>
+
+    <text x="60" y="214">Alamat</text>
+    <text x="180" y="214">:&nbsp; JL. GRAHA INDAH BLOK E1/15</text>
+
+    <text x="80" y="236">&nbsp;&nbsp;RT/RW</text>
+    <text x="180" y="236">:&nbsp; 005 / 008</text>
+
+    <text x="80" y="258">&nbsp;&nbsp;Kel/Desa</text>
+    <text x="180" y="258">:&nbsp; SUKAMAJU</text>
+
+    <text x="60" y="282">Agama</text>
+    <text x="180" y="282">:&nbsp; ISLAM</text>
+
+    <text x="60" y="306">Status Perkawinan</text>
+    <text x="180" y="306">:&nbsp; KAWIN</text>
+
+    <text x="60" y="330">Pekerjaan</text>
+    <text x="180" y="330">:&nbsp; KARYAWAN SWASTA</text>
+
+    <text x="60" y="354">Kewarganegaraan</text>
+    <text x="180" y="354">:&nbsp; WNI</text>
+  </g>
+
+  <!-- Photo Box -->
+  <g transform="translate(460, 100)">
+    <rect width="130" height="170" rx="8" fill="url(#photoBg)" stroke="#ffffff" stroke-width="3"/>
+    <ellipse cx="65" cy="65" rx="32" ry="36" fill="#f8fafc"/>
+    <path d="M 20 160 C 20 115, 110 115, 110 160 Z" fill="#1e293b"/>
+    <circle cx="65" cy="55" r="16" fill="#fca5a5" opacity="0.3"/>
+    <text x="65" y="188" font-family="'Epilogue', sans-serif" font-size="10" font-weight="700" text-anchor="middle" fill="#ffffff" letter-spacing="1">PAS FOTO</text>
+  </g>
+
+  <!-- Signature simulation -->
+  <g transform="translate(470, 305)" stroke="#0f172a" stroke-width="2.5" fill="none" stroke-linecap="round">
+    <path d="M 10 25 Q 30 5, 45 22 T 80 15 Q 95 30, 110 18"/>
+    <path d="M 25 15 L 90 28"/>
+    <text x="55" y="42" font-family="'Epilogue', sans-serif" font-size="9" font-weight="700" text-anchor="middle" fill="#ffffff" stroke="none">JAKARTA SELATAN</text>
+  </g>
+
+  <!-- Watermark badge -->
+  <rect x="42" y="32" width="46" height="46" rx="8" fill="#ffffff" opacity="0.2"/>
+  <text x="65" y="60" font-family="sans-serif" font-size="22" font-weight="bold" text-anchor="middle" fill="#ffffff">ID</text>
+</svg>
+

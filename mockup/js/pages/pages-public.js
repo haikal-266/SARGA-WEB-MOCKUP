@@ -9,7 +9,7 @@ function boardItem(item) {
       <img class="board-thumb" src="${esc(item.image)}" alt="" loading="lazy" onerror="this.src='img/placeholder-item.svg'">
       <span>
         <strong>${esc(item.name)}</strong>
-        <span>${esc(item.category)} · maksimal ${item.maxDays} hari</span>
+        <span>Maksimal ${item.maxDays} hari pinjam</span>
       </span>
     </a>`;
 }
@@ -55,7 +55,7 @@ function renderBeranda() {
         <ol class="steps">
           <li class="step">
             <span class="step-num">01</span>
-            <div><strong>Cari alat yang tersedia</strong><p>Filter berdasarkan kategori, baca kelengkapan, dan lihat siapa pemiliknya.</p></div>
+            <div><strong>Cari alat yang tersedia</strong><p>Cari alat yang dibutuhkan, baca kelengkapan, dan lihat siapa pemiliknya.</p></div>
           </li>
           <li class="step">
             <span class="step-num">02</span>
@@ -159,55 +159,138 @@ function renderDaftar() {
   return `
     <div class="page page-mid">
       ${pageHead({
-        kicker: 'Pendaftaran anggota',
+        kicker: 'Pendaftaran anggota · Alur Verifikasi',
         title: 'Daftar dengan kode undangan organisasi',
-        lede: 'Pendaftaran tidak langsung memberi akses pinjam. Pengurus memeriksa nomor WhatsApp dan dokumen keanggotaan terlebih dahulu.'
+        lede: 'Masukkan kode undangan dari pengurus organisasi Anda. Setelah kode cocok, lengkapi data diri dan foto dokumen keanggotaan (KTP/KTA) sebagai acuan verifikasi pengurus.'
       })}
 
       <div class="grid-2">
         <div class="panel panel-pad">
-          <form data-form="register" novalidate>
-            <div class="field">
-              <label class="label" for="reg-name">Nama lengkap</label>
-              <input class="form-input" id="reg-name" name="name" autocomplete="name" required>
+          <form data-form="register" novalidate id="register-form">
+            
+            <!-- LANGKAH 1: KODE UNDANGAN -->
+            <div class="field" style="border-bottom: 1px solid var(--color-rule-2); padding-bottom: 1.25rem; margin-bottom: 1.25rem;">
+              <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">
+                <span class="tag tag-in" style="font-weight:700">Langkah 1</span>
+                <label class="label" for="reg-invite" style="margin:0;font-size:.95rem">Masukkan kode undangan dari pengurus</label>
+              </div>
+              <input class="form-input mono" id="reg-invite" name="invite" placeholder="Contoh: GRAHA2026" autocomplete="off" required style="font-size:1.05rem;font-weight:700;letter-spacing:1px">
+              
+              <div style="margin-top:.6rem">
+                <p class="tiny muted" style="margin-bottom:.35rem">Pilih contoh kode organisasi untuk demo langsung:</p>
+                <div class="btn-row" style="gap:.35rem;flex-wrap:wrap">
+                  <button class="btn-pill" type="button" data-action="quick-invite" data-code="GRAHA2026">GRAHA2026 (Komunitas Graha Indah)</button>
+                  <button class="btn-pill" type="button" data-action="quick-invite" data-code="RT05-2026">RT05-2026 (RT 05 / RW 08 Sukamaju)</button>
+                  <button class="btn-pill" type="button" data-action="quick-invite" data-code="NUSANTARA2026">NUSANTARA2026 (PT Nusantara Digital)</button>
+                </div>
+              </div>
+
+              <div id="reg-invite-status" style="margin-top:.5rem"></div>
             </div>
-            <div class="field">
-              <label class="label" for="reg-wa">Nomor WhatsApp</label>
-              <input class="form-input" id="reg-wa" name="wa" type="tel" inputmode="tel" autocomplete="tel" required>
-              <p class="hint">Nomor ini dipakai untuk masuk dan dihubungi pengurus.</p>
+
+            <!-- LANGKAH 2: FORMULIR DATA DIRI ACUAN VERIFIKASI -->
+            <div id="reg-profile-section" class="form-section-locked" style="transition: opacity 0.25s ease">
+              <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem">
+                <span class="tag tag-neutral" style="font-weight:700">Langkah 2</span>
+                <h3 style="font-size:1rem;margin:0">Formulir Data Diri Calon Anggota</h3>
+              </div>
+              <p class="tiny muted" style="margin-bottom:1rem">Data berikut menjadi acuan pengurus saat memverifikasi dan menyetujui pendaftaran Anda.</p>
+
+              <div class="field">
+                <label class="label" for="reg-name">Nama lengkap</label>
+                <input class="form-input" id="reg-name" name="name" placeholder="Nama sesuai identitas resmi" autocomplete="name" required>
+              </div>
+
+              <div class="form-grid two">
+                <div class="field">
+                  <label class="label" for="reg-wa">Nomor HP / WhatsApp</label>
+                  <input class="form-input" id="reg-wa" name="wa" type="tel" inputmode="tel" placeholder="081234567890" autocomplete="tel" required>
+                  <p class="hint">Untuk masuk akun dan dihubungi pengurus.</p>
+                </div>
+                <div class="field">
+                  <label class="label" for="reg-address">Alamat / Divisi / Unit</label>
+                  <input class="form-input" id="reg-address" name="address" placeholder="Contoh: Blok E1 No. 15 / Divisi B">
+                  <p class="hint">Alamat domisili atau bagian kerja.</p>
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="label" for="reg-password">Kata sandi</label>
+                <input class="form-input" id="reg-password" name="password" type="password" autocomplete="new-password" minlength="6" placeholder="Minimal 6 karakter" required>
+              </div>
+
+              <!-- DOKUMEN KEANGGOTAAN -->
+              <div class="field" style="margin-top:1.25rem;border-top:1px dashed var(--color-rule-2);padding-top:1.25rem">
+                <label class="label" for="reg-doc-type">Foto Dokumen Keanggotaan (Acuan Verifikasi Pengurus)</label>
+                <p class="hint" style="margin-bottom:.5rem">Lampirkan foto KTP, Kartu Tanda Anggota (KTA), atau surat pengantar pengurus.</p>
+                
+                <div class="form-grid two" style="margin-bottom:.6rem">
+                  <div>
+                    <label class="label" for="reg-doc-type" style="font-size:.8rem;color:var(--color-muted)">Jenis Dokumen</label>
+                    <select class="form-input" id="reg-doc-type" name="documentType">
+                      <option value="KTP (Kartu Tanda Penduduk)">KTP (Kartu Tanda Penduduk)</option>
+                      <option value="Kartu Tanda Anggota (KTA)">Kartu Tanda Anggota (KTA)</option>
+                      <option value="Surat Keterangan Pengurus">Surat Keterangan Pengurus</option>
+                      <option value="Dokumen Identitas Lainnya">Dokumen Identitas Lainnya</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="label" for="reg-document" style="font-size:.8rem;color:var(--color-muted)">Unggah Foto Berkas</label>
+                    <input class="form-input" id="reg-document" name="document" type="file" accept="image/*">
+                  </div>
+                </div>
+
+                <div style="margin-bottom:.6rem">
+                  <span class="tiny muted">Atau gunakan dokumen contoh demo:</span>
+                  <div class="btn-row" style="margin-top:.25rem;gap:.4rem">
+                    <button class="btn-secondary btn-sm" type="button" data-action="use-sample-ktp">Gunakan Contoh KTP Demo</button>
+                    <button class="btn-secondary btn-sm" type="button" data-action="use-sample-kta">Gunakan Contoh KTA Demo</button>
+                  </div>
+                </div>
+
+                <!-- Hidden inputs to hold image data and name -->
+                <input type="hidden" id="reg-document-data" name="documentData" value="img/sample-ktp.svg">
+                <input type="hidden" id="reg-document-name" name="documentName" value="KTP_Agus_Setiawan_Demo.svg">
+
+                <!-- Pratinjau Gambar Dokumen -->
+                <div id="reg-doc-preview-card" class="doc-preview-box">
+                  <div class="doc-preview-header">
+                    <span class="small strong">Pratinjau Foto Dokumen Verifikasi</span>
+                    <span class="tag tag-in" id="reg-doc-status-tag">Dokumen Siap</span>
+                  </div>
+                  <div class="doc-preview-img-wrap">
+                    <img id="reg-doc-preview-img" src="img/sample-ktp.svg" alt="Pratinjau Dokumen">
+                  </div>
+                  <p class="tiny muted" id="reg-doc-filename-display" style="margin-top:.4rem">Berkas: KTP_Agus_Setiawan_Demo.svg (Contoh KTP Demo)</p>
+                </div>
+              </div>
+
+              <div class="field" style="margin-top:1rem">
+                <label class="label" for="reg-doc-note">Catatan tambahan (opsional)</label>
+                <input class="form-input" id="reg-doc-note" name="documentNote" placeholder="Contoh: Sudah konfirmasi ke Pak RT / Pengurus Divisi">
+              </div>
+
+              <button class="btn-primary btn-block form-submit" type="submit" id="reg-submit-btn" disabled style="margin-top:1.25rem">
+                Kirim Pendaftaran & Dokumen Verifikasi
+              </button>
             </div>
-            <div class="field">
-              <label class="label" for="reg-password">Kata sandi</label>
-              <input class="form-input" id="reg-password" name="password" type="password" autocomplete="new-password" minlength="6" required>
-              <p class="hint">Minimal 6 karakter.</p>
-            </div>
-            <div class="field">
-              <label class="label" for="reg-invite">Kode undangan organisasi</label>
-              <input class="form-input mono" id="reg-invite" name="invite" autocomplete="off" required>
-              <p class="hint">Contoh demo: <span class="mono">GRAHA2026</span>, <span class="mono">RT05-2026</span>, <span class="mono">NUSANTARA2026</span>.</p>
-            </div>
-            <div class="field">
-              <label class="label" for="reg-document">Dokumen pendukung (opsional)</label>
-              <input class="form-input" id="reg-document" name="document" type="file" accept="image/*,.pdf">
-              <p class="hint">Untuk demo, hanya nama berkas yang disimpan.</p>
-            </div>
-            <button class="btn-primary btn-block form-submit" type="submit">Kirim pendaftaran</button>
           </form>
           <p class="hint" style="margin-top:.75rem">Sudah punya akun? <a class="link" href="#/login">Masuk di sini</a>.</p>
         </div>
 
         <div class="stack">
           <div class="panel panel-pad">
-            <h2 style="font-size:1rem;margin-bottom:.6rem">Setelah formulir dikirim</h2>
+            <h2 style="font-size:1rem;margin-bottom:.6rem">Alur Verifikasi Pendaftaran</h2>
             <ol class="timeline" style="margin:0">
-              <li class="timeline-item done"><span class="timeline-dot"></span><div><strong>Pendaftaran dibuat</strong><p>Akun tersimpan dengan status menunggu verifikasi.</p></div></li>
-              <li class="timeline-item current"><span class="timeline-dot"></span><div><strong>Pengurus memeriksa</strong><p>Nomor WhatsApp dan dokumen dicocokkan dengan data organisasi.</p></div></li>
-              <li class="timeline-item"><span class="timeline-dot"></span><div><strong>Akun aktif</strong><p>Setelah disetujui, Anda bisa meminjam dan menayangkan alat.</p></div></li>
+              <li class="timeline-item done"><span class="timeline-dot"></span><div><strong>1. Masukkan Kode Pengurus</strong><p>Memastikan akun terhubung ke organisasi yang sah.</p></div></li>
+              <li class="timeline-item current"><span class="timeline-dot"></span><div><strong>2. Isi Data Diri & Foto Dokumen</strong><p>Nama lengkap, nomor HP WhatsApp, dan foto KTP/KTA.</p></div></li>
+              <li class="timeline-item"><span class="timeline-dot"></span><div><strong>3. Pemeriksaan Pengurus</strong><p>Pengurus memeriksa detail dan pop up foto dokumen di panel verifikasi.</p></div></li>
+              <li class="timeline-item"><span class="timeline-dot"></span><div><strong>4. Akun Aktif</strong><p>Setelah disetujui, Anda langsung dapat meminjam alat dan perkakas komunal.</p></div></li>
             </ol>
           </div>
           <div class="well">
-            <p class="small strong">Organisasi baru tidak dibuat dari halaman ini.</p>
-            <p class="small muted" style="margin-top:.25rem">Admin platform yang membuat organisasi dan menghasilkan kode undangan. Anggota cukup memakai kode dari pengurus.</p>
+            <p class="small strong">Keamanan Data Organisasi</p>
+            <p class="small muted" style="margin-top:.25rem">Dokumen verifikasi hanya dapat dilihat oleh Pengurus organisasi yang bersangkutan melalui panel verifikasi resmi SARGA.</p>
           </div>
         </div>
       </div>
@@ -274,7 +357,28 @@ function renderStatusAkun() {
           ${body}
         </div>
 
-        ${documentName ? `<hr class="divider"><p class="small"><span class="strong">Dokumen terkirim:</span> ${esc(documentName)}</p><p class="tiny muted">${esc(user.documentNote || 'Hanya nama berkas yang disimpan pada demo ini.')}</p>` : ''}
+        ${(documentName || user.documentImage) ? `
+          <hr class="divider">
+          <div class="doc-submitted-card">
+            <h2 style="font-size:.95rem;margin-bottom:.4rem">Dokumen Acuan Verifikasi Pendaftaran</h2>
+            <p class="small muted" style="margin-bottom:.65rem">Dokumen identitas ini diperiksa oleh pengurus organisasi.</p>
+            <div class="doc-submitted-flex">
+              <div class="doc-thumb-preview" style="cursor:default">
+                <img src="${esc(user.documentImage || 'img/sample-ktp.svg')}" alt="Dokumen Anda" class="doc-thumb-img">
+              </div>
+              <div class="pending-card-content">
+                <p class="small"><strong>Jenis Dokumen:</strong> ${esc(user.documentType || 'KTP / Identitas')}</p>
+                <p class="small mono tiny muted"><strong>Berkas:</strong> ${esc(documentName || 'Dokumen_Keanggotaan.svg')}</p>
+                ${user.documentNote ? `<p class="tiny muted" style="margin-top:.2rem">${esc(user.documentNote)}</p>` : ''}
+                <div style="margin-top:.5rem">
+                  <button class="btn-secondary btn-sm" type="button" data-action="view-my-doc">
+                    👁️ Buka Pop-Up Pratinjau Dokumen
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ` : ''}
 
         ${memberships.length > 1 ? `<hr class="divider"><h2 style="font-size:.95rem;margin-bottom:.5rem">Keanggotaan lain</h2><div class="list">${memberships.map((m) => {
           const other = store.orgById(m.orgId);
@@ -304,6 +408,7 @@ function renderGabung() {
       <div class="actions">
         ${tag(m.status)}
         ${m.status === 'Aktif' ? `<button class="btn-secondary btn-sm" type="button" data-action="open-org" data-org="${esc(org.id)}">Buka</button>` : ''}
+        ${m.status === 'Menunggu Verifikasi' ? `<button class="btn-secondary btn-sm" type="button" data-action="view-membership-doc" data-id="${esc(m.id)}">Lihat Dokumen</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -322,12 +427,12 @@ function renderGabung() {
           <form data-form="join-org" novalidate>
             <div class="field">
               <label class="label" for="join-code">Kode dari pengurus</label>
-              <input class="form-input mono" id="join-code" name="invite" autocomplete="off" required>
-              <p class="hint">Contoh demo: <span class="mono">NUSANTARA2026</span>.</p>
+              <input class="form-input mono" id="join-code" name="invite" autocomplete="off" placeholder="Misal: NUSANTARA2026" required>
+              <p class="hint">Contoh demo: <span class="mono">NUSANTARA2026</span> atau <span class="mono">RT05-2026</span>.</p>
             </div>
             <button class="btn-primary btn-block form-submit" type="submit">Ajukan keanggotaan</button>
           </form>
-          <p class="hint" style="margin-top:.75rem">Keanggotaan baru berstatus menunggu sampai disetujui pengurus organisasi tersebut.</p>
+          <p class="hint" style="margin-top:.75rem">Setelah memasukkan kode valid, popup <strong>Formulir Data Diri Calon Anggota</strong> akan terbuka untuk melampirkan foto bukti keanggotaan tanpa perlu memasukkan kata sandi.</p>
         </div>
 
         <div class="panel panel-pad">

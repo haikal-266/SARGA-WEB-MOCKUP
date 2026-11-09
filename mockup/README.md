@@ -21,11 +21,11 @@ Semua akun contoh memakai kata sandi **`rahasia123`**. Akun yang ditambahkan pen
 | Akun                | Peran                                           | Keadaan                                                      |
 | ------------------- | ----------------------------------------------- | ------------------------------------------------------------ |
 | Bambang Irawan      | Pengurus Komunitas Graha Indah, admin platform  | Bisa meminjam, menayangkan alat, dan membuka portal pengurus |
-| H. Sudirman Santoso | Org Admin Komunitas Graha Indah, admin platform | Persetujuan anggota dan pengaturan organisasi                |
+| H. Sudirman Santoso | Pengurus (Ketua) Komunitas Graha Indah, admin   | Persetujuan anggota dan pengaturan organisasi                |
 | Agus Setiawan, S.T. | Anggota baru                                    | Menunggu verifikasi pengurus                                 |
 | Rian Hidayat        | Anggota baru                                    | Pendaftaran ditolak, bisa diajukan ulang                     |
-| Maya Putri          | Org Admin PT Nusantara Digital                  | Contoh organisasi kantor                                     |
-| Dewi Lestari        | Org Admin RT 05 / RW 08 Sukamaju                | Contoh organisasi RT/RW                                      |
+| Maya Putri          | Pengurus (Ketua) PT Nusantara Digital           | Contoh organisasi kantor                                     |
+| Dewi Lestari        | Pengurus (Ketua) RT 05 / RW 08 Sukamaju         | Contoh organisasi RT/RW                                      |
 
 Panel **Data demo** di kiri bawah bisa mengganti akun, menampilkan akun menunggu atau ditolak, membuka akun pengurus, dan mereset seluruh data.
 
@@ -48,7 +48,7 @@ Panel **Data demo** di kiri bawah bisa mengganti akun, menampilkan akun menunggu
 
 **Anggota**
 
-- Katalog dengan pencarian dan filter kategori
+- Katalog dengan pencarian nama atau kode alat
 - Rincian barang, pengajuan pinjaman dengan validasi tanggal
 - Pinjaman saya dengan filter status dan rincian transaksi
 - Barang saya, permintaan masuk, tambah dan ubah barang, tarik/tayangkan lagi
@@ -65,7 +65,7 @@ Panel **Data demo** di kiri bawah bisa mengganti akun, menampilkan akun menunggu
 **Admin platform**
 
 - Direktori seluruh organisasi
-- Buat organisasi baru beserta Org Admin pertama
+- Buat organisasi baru beserta Pengurus pertama
 
 ## Alur yang Dicakup
 
@@ -90,16 +90,20 @@ Data awal berisi empat organisasi, 18 akun, sepuluh barang, dan sembilan transak
 
 | Berkas                        | Isi                                                                              |
 | ----------------------------- | -------------------------------------------------------------------------------- |
-| `index.html`                  | Kerangka halaman: header, navigasi, breadcrumb, footer, panel demo, wadah dialog |
-| `styles.css`                  | Seluruh tampilan, token warna, tipografi lokal, dan aturan responsif             |
-| `data.js`                     | Data awal dan API penyimpanan `window.SARGA_DB`                                  |
-| `app.js`                      | Sesi, pembantu tampilan, router, header, toast, dialog, dan penanganan peristiwa |
-| `pages-public.js`             | Beranda, masuk, daftar, status akun, gabung organisasi                           |
-| `pages-member.js`             | Katalog, rincian, pinjaman, barang, struktur, pengumuman, profil                 |
-| `pages-admin.js`              | Monitoring, verifikasi, organisasi, direktori, anggota, bagan                    |
-| `forms.js`                    | Penanganan formulir dan pembangun dialog                                         |
-| `actions.js`                  | Aksi tombol dan perubahan data                                                   |
-| `img/`, `fonts/`, `image.png` | Foto contoh, font Epilogue, dan logo                                             |
+| Berkas / Direktori            | Isi                                                                              |
+| ----------------------------- | -------------------------------------------------------------------------------- |
+| `index.html`                  | Titik masuk utama: kerangka header, navigasi, breadcrumb, footer, wadah modal     |
+| `css/styles.css`              | Token desain, tipografi lokal Epilogue, komponen kartu, tabel, dan responsif     |
+| `js/data.js`                 | Penyimpanan `SARGA_DB` di localStorage, relasi multi-organisasi, audit & barang |
+| `js/app.js`                  | Router berbasis hash, session controller, dynamic step unlock, demo dock & toast  |
+| `js/forms.js`                | Validasi formulir pendaftaran 2 tahap, modal verifikasi dokumen, tolak/setujui   |
+| `js/actions.js`              | Dispatcher event: tinjau dokumen modal, persetujuan anggota, switch demo user     |
+| `js/pages/pages-public.js`    | Halaman publik: Beranda, Masuk (Password/OTP), Daftar (2 tahap), Status Akun     |
+| `js/pages/pages-member.js`    | Halaman anggota: Katalog, Rincian, Pinjaman Saya, Barang Saya, Bagan Struktur    |
+| `js/pages/pages-admin.js`     | Halaman pengurus: Monitoring sirkulasi, Panel verifikasi dokumen, Manajemen user |
+| `fonts/`                     | Berkas webfont lokal (Epilogue 400, 500, 600, 700)                               |
+| `img/`                       | Asset gambar contoh: SVG KTP, SVG Kartu Tanda Anggota, dan foto demo             |
+| `image.png`                  | Logo resmi SARGA untuk favicon & header brand                                    |
 
 ## Batasan
 

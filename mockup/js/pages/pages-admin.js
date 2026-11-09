@@ -112,18 +112,76 @@ function renderAdminMonitoring() {
 function pendingMemberCard(membership) {
   const user = store.userById(membership.userId);
   if (!user) return '';
-  return `<div class="list-item">
-    <div class="item-head" style="margin-bottom:.5rem;padding-bottom:.5rem">
-      <div><span class="cell-main">${esc(user.name)}</span><span class="cell-sub">${esc(user.wa)} · diajukan ${fmtDate(membership.joinedAt)}</span></div>
-      ${tag(membership.status)}
-    </div>
-    <p class="small muted">Dokumen: ${esc(user.documentName || 'Tidak ada dokumen')}</p>
-    ${user.documentNote ? `<p class="tiny muted">${esc(user.documentNote)}</p>` : ''}
-    <div class="actions">
-      <button class="btn-primary btn-sm" type="button" data-action="approve-member" data-id="${esc(membership.id)}">Setujui</button>
-      <button class="btn-danger btn-sm" type="button" data-action="reject-member" data-id="${esc(membership.id)}">Tolak</button>
-    </div>
-  </div>`;
+  const docImg = membership.documentImage || user.documentImage || 'img/sample-ktp.svg';
+  const docName = membership.documentName || user.documentName || 'Dokumen_Keanggotaan.svg';
+  const docType = membership.documentType || user.documentType || 'KTP / Kartu Identitas';
+
+  return `
+    <div class="list-item pending-card">
+      <div class="pending-card-layout">
+        <button class="doc-thumb-preview" type="button" data-action="view-member-doc" data-id="${esc(membership.id)}" aria-label="Buka dokumen verifikasi ${esc(user.name)}" title="Klik untuk membuka pop up dokumen">
+          <img src="${esc(docImg)}" alt="Dokumen ${esc(user.name)}" class="doc-thumb-img">
+          <span class="doc-thumb-tag">👁️ Buka Dokumen</span>
+        </button>
+
+        <div class="pending-card-content">
+          <div class="item-head" style="margin-bottom:.4rem">
+            <div>
+              <span class="cell-main">${esc(user.name)}</span>
+              <span class="cell-sub">
+                <a class="link" href="${waHref(user.wa)}" target="_blank" rel="noopener">📱 ${esc(user.wa)}</a> · diajukan ${fmtDate(membership.joinedAt)}
+              </span>
+            </div>
+            ${tag(membership.status)}
+          </div>
+
+          <div class="pending-doc-meta" style="margin-bottom:.35rem">
+            <span class="badge-doc-type">📄 ${esc(docType)}</span>
+            <span class="tiny mono muted">${esc(docName)}</span>
+          </div>
+
+          ${user.address ? `<p class="tiny muted" style="margin-top:.15rem"><strong>Alamat/Divisi:</strong> ${esc(user.address)}</p>` : ''}
+          ${user.documentNote ? `<p class="tiny italic muted" style="margin-top:.15rem">${esc(user.documentNote)}</p>` : ''}
+
+          <div class="actions" style="margin-top:.75rem">
+            <button class="btn-secondary btn-sm" type="button" data-action="view-member-doc" data-id="${esc(membership.id)}">
+              🔍 Cek Detail & Dokumen
+            </button>
+            <button class="btn-primary btn-sm" type="button" data-action="approve-member" data-id="${esc(membership.id)}">
+              ✓ Setujui
+            </button>
+            <button class="btn-danger btn-sm" type="button" data-action="reject-member" data-id="${esc(membership.id)}">
+              ✕ Tolak
+            </button>
+          </div>
+        </div>
+      </div>
+
+      ${(membership.documentName || membership.documentImage || user.documentName || user.documentImage) ? `
+      <section class="section-rule">
+        <div class="section-head">
+          <h2>Dokumen Verifikasi Keanggotaan</h2>
+          <p>Foto identitas yang dilampirkan pemohon saat mendaftar ke organisasi.</p>
+        </div>
+        <div class="panel panel-pad">
+          <div class="doc-registered-row">
+            <div class="doc-thumb-preview" style="cursor:default">
+              <img src="${esc(membership.documentImage || user.documentImage || 'img/sample-ktp.svg')}" alt="Dokumen ${esc(user.name)}" class="doc-thumb-img">
+            </div>
+            <div class="pending-card-content">
+              <p class="small"><strong>Jenis Dokumen:</strong> ${esc(membership.documentType || user.documentType || 'KTP / Identitas Resmi')}</p>
+              <p class="small mono tiny muted"><strong>Berkas:</strong> ${esc(membership.documentName || user.documentName || 'Dokumen_Keanggotaan.svg')}</p>
+              ${(membership.documentNote || user.documentNote) ? `<p class="tiny muted" style="margin-top:.25rem">${esc(membership.documentNote || user.documentNote)}</p>` : ''}
+              <div style="margin-top:.75rem">
+                <button class="btn-secondary btn-sm" type="button" data-action="view-member-doc" data-id="${esc(membership.id)}">
+                  🔍 Buka Pop-Up Dokumen Penuh
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>` : ''}
+    </div>`;
 }
 
 function pendingLoanCard(loan) {
@@ -271,7 +329,7 @@ function orgCard(org) {
   const items = store.itemsOf(org.id).length;
   const me = currentUser();
   const membership = me ? store.membership(me.id, org.id) : null;
-  const canManage = membership && membership.status === 'Aktif' && (membership.role === 'Org Admin' || membership.role === 'Pengurus');
+  const canManage = membership && membership.status === 'Aktif' && (membership.role === 'Pengurus' || membership.role === 'Org Admin');
   return `<article class="org-card">
     <div class="org-card-head"><h2>${esc(org.name)}</h2>${tag(org.status === 'Aktif' ? 'Aktif' : 'Nonaktif')}</div>
     <div class="org-meta"><span>${esc(org.type)}</span><span>${members} anggota</span><span>${items} barang</span></div>
@@ -370,7 +428,7 @@ function renderAdminBuatOrganisasi() {
         </div>
 
         <div class="stack">
-          <div class="alert alert-info"><strong>Anda menjadi Org Admin pertama</strong>Setelah organisasi dibuat, akun Anda tercatat sebagai Org Admin dengan posisi Ketua. Anda bisa mengundang pengurus lain lewat halaman anggota.</div>
+          <div class="alert alert-info"><strong>Anda menjadi Pengurus pertama</strong>Setelah organisasi dibuat, akun Anda tercatat sebagai Pengurus dengan posisi Ketua. Anda bisa mengundang pengurus atau anggota lain lewat halaman anggota.</div>
           <div class="well">
             <p class="small strong">Kode undangan</p>
             <p class="small muted" style="margin-top:.25rem">Kode dipakai calon anggota saat mendaftar. Kode bisa diganti kapan saja dari halaman organisasi.</p>
@@ -516,6 +574,31 @@ function renderAdminAnggotaDetail(params) {
         </div>
       </div>
 
+      ${(membership.documentName || membership.documentImage || user.documentName || user.documentImage) ? `
+      <section class="section-rule">
+        <div class="section-head">
+          <h2>Dokumen Verifikasi Keanggotaan</h2>
+          <p>Foto identitas yang dilampirkan pemohon saat mendaftar ke organisasi.</p>
+        </div>
+        <div class="panel panel-pad">
+          <div class="doc-registered-row">
+            <div class="doc-thumb-preview" style="cursor:default">
+              <img src="${esc(membership.documentImage || user.documentImage || 'img/sample-ktp.svg')}" alt="Dokumen ${esc(user.name)}" class="doc-thumb-img">
+            </div>
+            <div class="pending-card-content">
+              <p class="small"><strong>Jenis Dokumen:</strong> ${esc(membership.documentType || user.documentType || 'KTP / Identitas Resmi')}</p>
+              <p class="small mono tiny muted"><strong>Berkas:</strong> ${esc(membership.documentName || user.documentName || 'Dokumen_Keanggotaan.svg')}</p>
+              ${(membership.documentNote || user.documentNote) ? `<p class="tiny muted" style="margin-top:.25rem">${esc(membership.documentNote || user.documentNote)}</p>` : ''}
+              <div style="margin-top:.75rem">
+                <button class="btn-secondary btn-sm" type="button" data-action="view-member-doc" data-id="${esc(membership.id)}">
+                  🔍 Buka Pop-Up Dokumen Penuh
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>` : ''}
+
       <section class="section-rule">
         <div class="section-head"><h2>Pinjaman sebagai peminjam</h2><p>Riwayat pinjaman anggota ini.</p></div>
         ${loans.length ? `<div class="list">${loans.slice().sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).map((loan) => {
@@ -526,7 +609,7 @@ function renderAdminAnggotaDetail(params) {
 
       <section class="section-rule">
         <div class="section-head"><h2>Barang yang dimiliki</h2><p>Barang yang ditayangkan anggota ini di katalog.</p></div>
-        ${owned.length ? `<div class="list">${owned.map((item) => `<div class="list-item row"><div><span class="cell-main">${esc(item.name)}</span><span class="cell-sub">${esc(item.category)} · ${esc(item.status)}</span></div><div class="actions"><a class="btn-secondary btn-sm" href="#/detail-barang?id=${esc(item.id)}">Lihat</a></div></div>`).join('')}</div>` : '<p class="small muted">Belum ada barang.</p>'}
+        ${owned.length ? `<div class="list">${owned.map((item) => `<div class="list-item row"><div><span class="cell-main">${esc(item.name)}</span><span class="cell-sub">Kode: ${esc(item.code)} · ${esc(item.status)}</span></div><div class="actions"><a class="btn-secondary btn-sm" href="#/detail-barang?id=${esc(item.id)}">Lihat</a></div></div>`).join('')}</div>` : '<p class="small muted">Belum ada barang.</p>'}
       </section>
     </div>`;
 }
@@ -598,7 +681,7 @@ function renderAdminBagan() {
       })}
       ${adminLinks('#/admin-bagan')}
 
-      <div class="alert alert-info" style="margin-bottom:1rem"><strong>Peran menentukan akses</strong>Org Admin dan Pengurus bisa membuka portal pengurus. Anggota hanya bisa meminjam, menayangkan barang, dan melihat struktur.</div>
+      <div class="alert alert-info" style="margin-bottom:1rem"><strong>Peran menentukan akses</strong>Pengurus bisa membuka portal pengurus dan verifikasi. Anggota hanya bisa meminjam, menayangkan barang, dan melihat struktur.</div>
 
       <form data-form="structure" novalidate>
         <div class="list">
@@ -623,6 +706,6 @@ function renderAdminBagan() {
         ${members.length ? `<button class="btn-primary form-submit" type="submit">Simpan bagan</button>` : ''}
       </form>
 
-      <p class="hint" style="margin-top:.75rem">Minimal satu anggota harus tetap menjadi Org Admin. Untuk posisi baru, tambahkan anggota lalu ubah posisinya di sini.</p>
+      <p class="hint" style="margin-top:.75rem">Minimal satu anggota harus tetap menjadi Pengurus. Untuk posisi baru, tambahkan anggota lalu ubah posisinya di sini.</p>
     </div>`;
 }

@@ -4,7 +4,7 @@
  * This is a demo store, not a security boundary: production rules must live on a server.
  */
 (function () {
-  const STORAGE_KEY = 'sarga_db_v5';
+  const STORAGE_KEY = 'sarga_db_v8';
 
   const seed = {
     organizations: [
@@ -73,8 +73,10 @@
         address: 'Divisi E1 - No. 15',
         status: 'Menunggu Verifikasi',
         createdAt: '2026-11-08',
-        documentName: 'KTP_dan_Surat_Pengantar_Agus_Setiawan.pdf',
-        documentNote: 'Kartu identitas dan surat pengantar pengurus divisi.'
+        documentType: 'KTP (Kartu Tanda Penduduk)',
+        documentName: 'KTP_dan_Surat_Pengantar_Agus_Setiawan.svg',
+        documentImage: 'img/sample-ktp.svg',
+        documentNote: 'KTP domisili Divisi E1 dan surat pengantar pengurus divisi.'
       },
       {
         id: 'u-rian',
@@ -84,9 +86,11 @@
         address: 'Divisi F2 - No. 03',
         status: 'Ditolak',
         createdAt: '2026-10-30',
-        rejectionReason: 'Dokumen keanggotaan tidak terbaca. Silakan unggah ulang foto kartu identitas yang jelas.',
-        documentName: 'Foto_identitas_Rian.jpg',
-        documentNote: 'Foto identitas buram.'
+        rejectionReason: 'Dokumen keanggotaan tidak terbaca jelas. Silakan unggah ulang foto kartu identitas atau KTA yang jelas.',
+        documentType: 'Kartu Tanda Anggota (KTA)',
+        documentName: 'Kartu_Anggota_Rian_Hidayat.svg',
+        documentImage: 'img/sample-kartu-anggota.svg',
+        documentNote: 'Foto kartu anggota buram saat pertama diajukan.'
       },
       { id: 'u-dewi-rt', name: 'Dewi Lestari', wa: '081211112222', password: 'rahasia123', address: 'Blok A - No. 3', status: 'Aktif', createdAt: '2024-08-17' },
       { id: 'u-rudi-rt', name: 'Rudi Hartono', wa: '081233334444', password: 'rahasia123', address: 'Blok B - No. 6', status: 'Aktif', createdAt: '2024-08-17' },
@@ -97,7 +101,7 @@
     ],
 
     memberships: [
-      { id: 'm-1', orgId: 'org-graha', userId: 'u-sudirman', role: 'Org Admin', position: 'Ketua', status: 'Aktif', joinedAt: '2025-01-12' },
+      { id: 'm-1', orgId: 'org-graha', userId: 'u-sudirman', role: 'Pengurus', position: 'Ketua', status: 'Aktif', joinedAt: '2025-01-12' },
       { id: 'm-2', orgId: 'org-graha', userId: 'u-siti', role: 'Pengurus', position: 'Sekretaris', status: 'Aktif', joinedAt: '2025-01-12' },
       { id: 'm-3', orgId: 'org-graha', userId: 'u-agus-pramono', role: 'Pengurus', position: 'Bendahara', status: 'Aktif', joinedAt: '2025-01-12' },
       { id: 'm-4', orgId: 'org-graha', userId: 'u-bambang', role: 'Pengurus', position: 'Koordinator Divisi B', status: 'Aktif', joinedAt: '2025-02-01' },
@@ -108,11 +112,11 @@
       { id: 'm-9', orgId: 'org-graha', userId: 'u-joko', role: 'Anggota', position: 'Anggota', status: 'Aktif', joinedAt: '2025-03-04' },
       { id: 'm-10', orgId: 'org-graha', userId: 'u-hendra', role: 'Anggota', position: 'Anggota', status: 'Aktif', joinedAt: '2025-04-09' },
       { id: 'm-11', orgId: 'org-graha', userId: 'u-agus-setiawan', role: 'Anggota', position: 'Anggota', status: 'Menunggu Verifikasi', joinedAt: '2026-11-08' },
-      { id: 'm-12', orgId: 'org-rt05', userId: 'u-dewi-rt', role: 'Org Admin', position: 'Ketua', status: 'Aktif', joinedAt: '2024-08-17' },
+      { id: 'm-12', orgId: 'org-rt05', userId: 'u-dewi-rt', role: 'Pengurus', position: 'Ketua', status: 'Aktif', joinedAt: '2024-08-17' },
       { id: 'm-13', orgId: 'org-rt05', userId: 'u-rudi-rt', role: 'Pengurus', position: 'Sekretaris', status: 'Aktif', joinedAt: '2024-08-17' },
       { id: 'm-14', orgId: 'org-rt05', userId: 'u-sari-rt', role: 'Anggota', position: 'Anggota', status: 'Aktif', joinedAt: '2025-05-20' },
       { id: 'm-15', orgId: 'org-rt05', userId: 'u-bayu-rt', role: 'Anggota', position: 'Anggota', status: 'Aktif', joinedAt: '2025-05-20' },
-      { id: 'm-16', orgId: 'org-nusantara', userId: 'u-maya', role: 'Org Admin', position: 'Ketua', status: 'Aktif', joinedAt: '2025-03-02' },
+      { id: 'm-16', orgId: 'org-nusantara', userId: 'u-maya', role: 'Pengurus', position: 'Ketua', status: 'Aktif', joinedAt: '2025-03-02' },
       { id: 'm-17', orgId: 'org-nusantara', userId: 'u-fajar', role: 'Pengurus', position: 'Sekretaris', status: 'Aktif', joinedAt: '2025-03-02' },
       { id: 'm-18', orgId: 'org-nusantara', userId: 'u-bambang', role: 'Anggota', position: 'Anggota', status: 'Aktif', joinedAt: '2025-06-15' },
       { id: 'm-19', orgId: 'org-graha', userId: 'u-rian', role: 'Anggota', position: 'Anggota', status: 'Ditolak', joinedAt: '2026-10-30' }
@@ -125,7 +129,6 @@
         orgId: 'org-graha',
         ownerId: 'u-hendro',
         name: 'Obeng elektrik presisi & mata obeng set',
-        category: 'Pertukangan & perbaikan',
         maxDays: 3,
         location: 'Divisi A4 - No. 18',
         status: 'Tersedia',
@@ -140,7 +143,6 @@
         orgId: 'org-graha',
         ownerId: 'u-ratna',
         name: 'Tangga aluminium teleskopik 3.8 meter',
-        category: 'Pertukangan & perbaikan',
         maxDays: 3,
         location: 'Divisi C1 - No. 05',
         status: 'Tersedia',
@@ -155,7 +157,6 @@
         orgId: 'org-graha',
         ownerId: 'u-dimas',
         name: 'Tenda kubah 4 orang tahan air',
-        category: 'Kemping & luar ruangan',
         maxDays: 5,
         location: 'Divisi D2 - No. 07',
         status: 'Dipinjam',
@@ -170,7 +171,6 @@
         orgId: 'org-graha',
         ownerId: 'u-hendro',
         name: 'Ketam kayu manual & mata pisau asah',
-        category: 'Pertukangan & perbaikan',
         maxDays: 3,
         location: 'Divisi A4 - No. 18',
         status: 'Tersedia',
@@ -185,7 +185,6 @@
         orgId: 'org-graha',
         ownerId: null,
         name: 'Mesin pahat & bubut kayu serbaguna',
-        category: 'Aset bersama organisasi',
         maxDays: 2,
         location: 'Sekretariat organisasi',
         status: 'Dipinjam',
@@ -200,7 +199,6 @@
         orgId: 'org-graha',
         ownerId: 'u-budi',
         name: 'Set palu, tang kombinasi & kunci pas lengkap',
-        category: 'Perkakas tangan',
         maxDays: 3,
         location: 'Divisi B2 - No. 08',
         status: 'Dipinjam',
@@ -215,7 +213,6 @@
         orgId: 'org-graha',
         ownerId: 'u-bambang',
         name: 'Mesin pemotong rumput dorong Honda',
-        category: 'Kebun & halaman',
         maxDays: 3,
         location: 'Divisi B - No. 12',
         status: 'Tersedia',
@@ -230,7 +227,6 @@
         orgId: 'org-graha',
         ownerId: 'u-bambang',
         name: 'Bor listrik impact 13 mm',
-        category: 'Pertukangan & perbaikan',
         maxDays: 3,
         location: 'Divisi B - No. 12',
         status: 'Dipinjam',
@@ -245,7 +241,6 @@
         orgId: 'org-graha',
         ownerId: null,
         name: 'Tenda terop besi 4x6 meter (2 unit)',
-        category: 'Aset bersama organisasi',
         maxDays: 5,
         location: 'Gudang bersama',
         status: 'Dipinjam',
@@ -260,7 +255,6 @@
         orgId: 'org-nusantara',
         ownerId: 'u-maya',
         name: 'Proyektor portabel ruang rapat',
-        category: 'Elektronik & kabel',
         maxDays: 2,
         location: 'Lantai 4 - Meja 12',
         status: 'Tersedia',

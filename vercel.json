@@ -1,0 +1,13 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/mockup/index.html" },
+    { "source": "/css/(.*)", "destination": "/mockup/css/$1" },
+    { "source": "/js/(.*)", "destination": "/mockup/js/$1" },
+    { "source": "/fonts/(.*)", "destination": "/mockup/fonts/$1" },
+    { "source": "/img/(.*)", "destination": "/mockup/img/$1" },
+    { "source": "/image.png", "destination": "/mockup/image.png" },
+    { "source": "/((?!mockup/).*)", "destination": "/mockup/$1" }
+  ]
+}
+

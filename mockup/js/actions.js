@@ -97,6 +97,15 @@ function handleAction(action, data, event) {
     return;
   }
 
+  if (action === 'switch-user') {
+    const userId = data.user;
+    const orgId = data.org || primaryOrgId(userId);
+    session = { userId, orgId };
+    saveSession();
+    render();
+    return;
+  }
+
   if (action === 'demo-admin') {
     const user = store.userById('u-sudirman');
     if (!user) {
@@ -105,7 +114,7 @@ function handleAction(action, data, event) {
     }
     session = { userId: user.id, orgId: 'org-graha' };
     saveSession();
-    toast('Masuk sebagai pengurus', `${user.name} · Org Admin Komunitas Graha Indah.`, 'success');
+    toast('Masuk sebagai pengurus', `${user.name} · Pengurus Komunitas Graha Indah.`, 'success');
     navigate('#/admin-monitoring');
     return;
   }
@@ -115,7 +124,7 @@ function handleAction(action, data, event) {
     session = { userId: 'u-bambang', orgId: 'org-graha' };
     saveSession();
     closeModal();
-    catalogState = { category: 'Semua', query: '' };
+    catalogState = { query: '' };
     loanTab = 'Semua';
     memberStatusFilter = 'Semua';
     memberQuery = '';
@@ -123,6 +132,7 @@ function handleAction(action, data, event) {
     directoryQuery = '';
     toast('Data demo direset', 'Semua perubahan di peramban ini dikembalikan ke data awal.', 'success');
     navigate('#/beranda');
+    closeModal();
     render();
     return;
   }
@@ -150,6 +160,83 @@ function handleAction(action, data, event) {
 
   if (action === 'close-modal') {
     closeModal();
+    return;
+  }
+
+  if (action === 'view-member-doc') {
+    openMemberDocModal(data.id);
+    return;
+  }
+
+  if (action === 'view-my-doc') {
+    openMyDocModal();
+    return;
+  }
+
+  if (action === 'quick-invite') {
+    const inviteInput = document.getElementById('reg-invite');
+    if (inviteInput) {
+      inviteInput.value = data.code || '';
+      inviteInput.dispatchEvent(new Event('input', { bubbles: true }));
+      const nameInput = document.getElementById('reg-name');
+      if (nameInput) nameInput.focus();
+    }
+    return;
+  }
+
+  if (action === 'use-sample-ktp') {
+    const isJoin = !!document.getElementById('join-doc-preview-img');
+    const prefix = isJoin ? 'join-' : 'reg-';
+    const dataInput = document.getElementById(prefix + 'document-data');
+    const nameInput = document.getElementById(prefix + 'document-name');
+    const previewImg = document.getElementById(prefix + 'doc-preview-img');
+    const filenameDisplay = document.getElementById(prefix + 'doc-filename-display');
+    const typeSelect = document.getElementById(prefix + 'doc-type');
+    const statusTag = document.getElementById(prefix + 'doc-status-tag');
+    if (dataInput) dataInput.value = 'img/sample-ktp.svg';
+    if (nameInput) nameInput.value = 'KTP_Agus_Setiawan_Demo.svg';
+    if (previewImg) previewImg.src = 'img/sample-ktp.svg';
+    if (filenameDisplay) filenameDisplay.textContent = 'Berkas: KTP_Agus_Setiawan_Demo.svg (Contoh KTP Demo)';
+    if (typeSelect) typeSelect.value = 'KTP (Kartu Tanda Penduduk)';
+    if (statusTag) {
+      statusTag.textContent = 'KTP Demo Dipilih';
+      statusTag.className = 'tag tag-in';
+    }
+    toast('KTP Demo Terpilih', 'Contoh KTP siap dikirim sebagai dokumen verifikasi.', 'info');
+    return;
+  }
+
+  if (action === 'use-sample-kta') {
+    const isJoin = !!document.getElementById('join-doc-preview-img');
+    const prefix = isJoin ? 'join-' : 'reg-';
+    const dataInput = document.getElementById(prefix + 'document-data');
+    const nameInput = document.getElementById(prefix + 'document-name');
+    const previewImg = document.getElementById(prefix + 'doc-preview-img');
+    const filenameDisplay = document.getElementById(prefix + 'doc-filename-display');
+    const typeSelect = document.getElementById(prefix + 'doc-type');
+    const statusTag = document.getElementById(prefix + 'doc-status-tag');
+    if (dataInput) dataInput.value = 'img/sample-kartu-anggota.svg';
+    if (nameInput) nameInput.value = 'Kartu_Anggota_KGI_Demo.svg';
+    if (previewImg) previewImg.src = 'img/sample-kartu-anggota.svg';
+    if (filenameDisplay) filenameDisplay.textContent = 'Berkas: Kartu_Anggota_KGI_Demo.svg (Contoh KTA Demo)';
+    if (typeSelect) typeSelect.value = 'Kartu Tanda Anggota (KTA)';
+    if (statusTag) {
+      statusTag.textContent = 'KTA Demo Dipilih';
+      statusTag.className = 'tag tag-in';
+    }
+    toast('KTA Demo Terpilih', 'Contoh Kartu Anggota siap dikirim sebagai dokumen verifikasi.', 'info');
+    return;
+  }
+
+  if (action === 'view-membership-doc') {
+    openMemberDocModal(data.id);
+    return;
+  }
+
+  if (action === 'open-join-modal') {
+    const orgId = data.org;
+    const invite = data.code || '';
+    if (orgId) openJoinOrgModal(orgId, invite);
     return;
   }
 
@@ -202,8 +289,8 @@ function handleAction(action, data, event) {
     const user = currentUser();
     if (!user || !orgId) return;
     const membership = store.membership(user.id, orgId);
-    if (!membership || membership.status !== 'Aktif' || (membership.role !== 'Org Admin' && membership.role !== 'Pengurus')) {
-      toast('Akses ditolak', 'Hanya Org Admin atau Pengurus yang bisa membuka pengaturan organisasi.', 'danger');
+    if (!membership || membership.status !== 'Aktif' || (membership.role !== 'Pengurus' && membership.role !== 'Org Admin')) {
+      toast('Akses ditolak', 'Hanya Pengurus yang bisa membuka pengaturan organisasi.', 'danger');
       return;
     }
     session = { userId: user.id, orgId };
@@ -435,7 +522,7 @@ function handleAction(action, data, event) {
   }
 
   if (action === 'reset-catalog') {
-    catalogState = { category: 'Semua', query: '' };
+    catalogState = { query: '' };
     const input = document.getElementById('catalog-search');
     if (input) input.value = '';
     refreshCatalog();
