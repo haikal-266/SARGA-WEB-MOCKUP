@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<<<<<<< HEAD
   <title>SARGA: Peminjaman Alat dan Berbagi Antar-Anggota</title>
   <meta name="description" content="Sistem inventaris dan peminjaman alat bersama anggota organisasi. Bersih, transparan, dan terstruktur berdasarkan SRS v1.2.">
   <link rel="icon" type="image/png" href="image.png">
@@ -1341,106 +1340,20 @@
               <li><a href="#/admin-verifikasi" class="hover:text-slate-900">Verifikasi anggota</a></li>
               <li><a href="#/admin-organisasi" class="hover:text-slate-900">Alat komunal organisasi</a></li>
             </ul>
-=======
-  <title>SARGA: Inventaris dan Peminjaman Alat Organisasi</title>
-  <meta name="description" content="Katalog alat bersama organisasi, pengajuan pinjaman, dan pencatatan serah terima yang rapi. Mockup antarmuka SARGA berdasarkan SRS v1.2.">
-  <link rel="icon" type="image/png" href="image.png">
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <a class="skip-link" href="#main-content" data-action="skip-main">Lewati ke konten utama</a>
-
-  <div id="toast-container" class="toast-container" role="region" aria-label="Pemberitahuan" aria-live="polite"></div>
-
-  <header class="site-header">
-    <div class="wrap">
-      <div class="header-top">
-        <a class="brand" href="#/beranda" aria-label="SARGA, beranda">
-          <img src="image.png" alt="">
-          <span class="brand-text">
-            <span class="brand-name">SARGA</span>
-            <span class="org-badge" id="header-org">Organisasi</span>
-          </span>
-        </a>
-
-        <div class="header-actions" id="header-actions"></div>
-
-        <button class="mobile-menu-btn" id="mobile-menu-button" type="button" aria-expanded="false" aria-controls="mobile-menu-drawer">
-          Menu
-        </button>
-      </div>
-
-      <nav class="primary-nav" id="primary-nav" aria-label="Navigasi utama"></nav>
-    </div>
-
-    <div class="mobile-drawer wrap" id="mobile-menu-drawer" hidden></div>
-  </header>
-
-  <div class="crumb-bar">
-    <div class="wrap">
-      <nav class="crumbs" id="global-breadcrumb" aria-label="Breadcrumb"></nav>
-    </div>
-  </div>
-
-  <main class="site-main" id="main-content" tabindex="-1">
-    <div class="wrap" id="page-root"></div>
-  </main>
-
-  <footer class="site-footer">
-    <div class="wrap">
-      <div class="footer-grid">
-        <div>
-          <div class="footer-brand">
-            <img src="image.png" alt="">
-            <strong>SARGA</strong>
-          </div>
-          <p class="footer-copy">Pencatatan alat bersama untuk organisasi: siapa meminjam, sampai kapan, dan apa yang sudah kembali. Dibuat sebagai mockup antarmuka dari SRS v1.2.</p>
-          <p class="footer-note">Data demo tersimpan di peramban Anda. Bukan sistem produksi.</p>
-        </div>
-
-        <div class="footer-links">
-          <div>
-            <h3>Anggota</h3>
-            <a href="#/katalog">Katalog alat</a><br>
-            <a href="#/pinjaman-saya">Pinjaman saya</a><br>
-            <a href="#/barang-saya">Barang saya</a><br>
-            <a href="#/struktur">Struktur organisasi</a>
-          </div>
-          <div>
-            <h3>Akun</h3>
-            <a href="#/profil">Profil</a><br>
-            <a href="#/gabung">Gabung organisasi</a><br>
-            <a href="#/daftar">Daftar anggota</a><br>
-            <a href="#/status-akun">Status pendaftaran</a>
-          </div>
-          <div>
-            <h3>Pengurus</h3>
-            <a href="#/admin-monitoring">Monitoring</a><br>
-            <a href="#/admin-verifikasi">Verifikasi</a><br>
-            <a href="#/admin-anggota">Anggota</a><br>
-            <a href="#/admin-organisasi">Organisasi</a>
->>>>>>> 6b9b3ab (Update mockup: integrasi alur SRS dan perbaikan UI)
           </div>
         </div>
       </div>
 
-<<<<<<< HEAD
       <!-- Hallmark Photo Citations Required for Honest Human Design -->
       <div class="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
         <p>© 2026 Tim Pengembang Sarga & Pengurus organisasi. Hak cipta dilindungi.</p>
         <p class="text-slate-400">
           Photographs: CEphoto, Uwe Aranas, Jacek Halicki, Araqangaraq, Vyacheslav Argenberg, Bertrand from Paris, France, Trougnouf (Benoit Brummer), Les cuirs d'Agathe.
         </p>
-=======
-      <div class="footer-bottom">
-        <p>© 2026 Tim Pengembang SARGA dan pengurus organisasi.</p>
-        <p class="credits">Foto contoh: Unsplash dan Wikimedia Commons. Dipakai hanya untuk demo.</p>
->>>>>>> 6b9b3ab (Update mockup: integrasi alur SRS dan perbaikan UI)
       </div>
     </div>
   </footer>
 
-<<<<<<< HEAD
   <!-- ========================================================================= -->
   <!-- FLOATING PROTOTYPE DOCK (SRS v1.2 Verification Controller)                 -->
   <!-- Disimpan di sudut kiri bawah agar pengujian SRS tetap lengkap             -->
@@ -1477,33 +1390,5 @@
   </aside>
 
   <script src="app.js"></script>
-=======
-  <aside class="demo-dock" aria-label="Panel data demo">
-    <details>
-      <summary>Data demo</summary>
-      <div class="demo-dock-body">
-        <label for="demo-user">Masuk sebagai</label>
-        <select id="demo-user"></select>
-        <div class="dock-actions">
-          <button class="dock-action" type="button" data-action="demo-pending">Akun menunggu</button>
-          <button class="dock-action" type="button" data-action="demo-rejected">Akun ditolak</button>
-          <button class="dock-action" type="button" data-action="demo-admin">Org admin</button>
-          <button class="dock-action" type="button" data-action="reset-demo">Reset data</button>
-        </div>
-        <p class="tiny" style="margin-top:.55rem;color:#cbd5e1;">Semua perubahan tersimpan di peramban ini.</p>
-      </div>
-    </details>
-  </aside>
-
-  <div id="modal-root"></div>
-
-  <script src="data.js"></script>
-  <script src="app.js"></script>
-  <script src="pages-public.js"></script>
-  <script src="pages-member.js"></script>
-  <script src="pages-admin.js"></script>
-  <script src="forms.js"></script>
-  <script src="actions.js"></script>
->>>>>>> 6b9b3ab (Update mockup: integrasi alur SRS dan perbaikan UI)
 </body>
 </html>
