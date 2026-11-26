@@ -47,7 +47,7 @@ export const getOrganizationStructure = async (req: AuthRequest, res: Response):
 
     const organization = await prisma.organization.findUnique({
       where: { id: orgId },
-      select: { id: true, name: true, type: true, address: true, contact: true }
+      select: { id: true, name: true, type: true, address: true, contact: true, inviteCode: true, inviteExpires: true }
     });
     if (!organization) {
       res.status(404).json({ success: false, message: 'Organisasi tidak ditemukan.' });
