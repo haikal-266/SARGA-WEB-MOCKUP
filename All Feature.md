@@ -240,13 +240,13 @@ Setiap tugas diformat dengan struktur standar di bawah ini agar rekan tim dapat 
   - **Berkas Terkait:** `frontend/src/app/features/profile/profile.component.ts`
   - **Catatan Teknis:** Data diri pengguna, tombol lihat dokumen pendaftaran saya (`openMyDocModal`), selector ganti organisasi aktif, dan form ubah kata sandi. Switcher organisasi memakai `setActiveOrg`. Ubah kata sandi baru divalidasi di sisi klien; endpoint server belum tersedia sehingga ditampilkan sebagai segera hadir. Dokumen pendaftaran tampil bila `documentUrl` tersedia.
 
-- [ ] **FE-FLP-04: Halaman Bagan & Penugasan Jabatan Pengurus (`#/admin-bagan`)**
+- [x] **FE-FLP-04: Halaman Bagan & Penugasan Jabatan Pengurus (`#/admin-bagan`)**
   - **Assignee / PIC:** Filipus (FE)
-  - **Status:** `Belum Dimulai`
+  - **Status:** `Selesai`
   - **Target Selesai:** 2026-11-29
-  - **Tanggal Selesai:** -
+  - **Tanggal Selesai:** 2026-11-25
   - **Berkas Terkait:** `frontend/src/app/features/admin/structure-matrix.component.ts`
-  - **Catatan Teknis:** Matriks pengelompokan divisi dan penugasan peran/jabatan anggota di portal pengurus.
+  - **Catatan Teknis:** Matriks pengelompokan divisi dan penugasan peran/jabatan anggota di portal pengurus. Dikelompokkan per divisi; simpan memakai `PUT /memberships/:id`. Menolak bila tidak ada pengurus tersisa atau pengurus menurunkan perannya sendiri.
 
 - [ ] **FE-FLP-05: Halaman Direktori Seluruh Organisasi Admin Platform (`#/admin-direktori`)**
   - **Assignee / PIC:** Filipus (FE)

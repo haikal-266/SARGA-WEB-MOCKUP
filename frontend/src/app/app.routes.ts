@@ -8,6 +8,7 @@ import { ItemCreateComponent } from './features/items/item-create.component';
 import { StructureComponent } from './features/structure/structure.component';
 import { AnnouncementsComponent } from './features/announcements/announcements.component';
 import { ProfileComponent } from './features/profile/profile.component';
+import { StructureMatrixComponent } from './features/admin/structure-matrix.component';
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
@@ -40,6 +41,12 @@ export const routes: Routes = [
   {
     path: 'profil',
     component: ProfileComponent,
+    canActivate: [authGuard]
+  },
+  {
+    // Hak akses pengurus diperiksa di komponen karena peran aktif baru dimuat setelah /auth/me.
+    path: 'admin-bagan',
+    component: StructureMatrixComponent,
     canActivate: [authGuard]
   },
   {
