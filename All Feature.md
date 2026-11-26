@@ -216,21 +216,21 @@ Setiap tugas diformat dengan struktur standar di bawah ini agar rekan tim dapat 
 
 ### Alokasi Filipus (FE — 20% / 5 Task)
 
-- [ ] **FE-FLP-01: Halaman Struktur Organisasi Komunitas (`#/struktur`)**
+- [x] **FE-FLP-01: Halaman Struktur Organisasi Komunitas (`#/struktur`)**
   - **Assignee / PIC:** Filipus (FE)
-  - **Status:** `Belum Dimulai`
+  - **Status:** `Selesai`
   - **Target Selesai:** 2026-11-26
-  - **Tanggal Selesai:** -
-  - **Berkas Terkait:** `frontend/src/app/features/structure/structure.component.ts`
+  - **Tanggal Selesai:** 2026-11-24
+  - **Berkas Terkait:** [structure.component.ts](file:///c:/Users/HP/Desktop/SARGA-WEB-MOCKUP/frontend/src/app/features/structure/structure.component.ts)
   - **Catatan Teknis:** Visualisasi kartu daftar pengurus inti (Ketua, Sekretaris, Bendahara) dan anggota aktif beserta tautan langsung WhatsApp.
 
-- [ ] **FE-FLP-02: Halaman Papan Pengumuman Organisasi (`#/pengumuman`)**
+- [x] **FE-FLP-02: Halaman Papan Pengumuman Organisasi (`#/pengumuman`)**
   - **Assignee / PIC:** Filipus (FE)
-  - **Status:** `Belum Dimulai`
+  - **Status:** `Selesai`
   - **Target Selesai:** 2026-11-27
-  - **Tanggal Selesai:** -
+  - **Tanggal Selesai:** 2026-11-25
   - **Berkas Terkait:** `frontend/src/app/features/announcements/announcements.component.ts`
-  - **Catatan Teknis:** Tampilan daftar pengumuman berurut waktu, form tambah pengumuman (khusus pengurus), dan tombol hapus pengumuman.
+  - **Catatan Teknis:** Tampilan daftar pengumuman berurut waktu, form tambah pengumuman (khusus pengurus), dan tombol hapus pengumuman. Dihubungkan ke GET/POST/DELETE `/announcements`; validasi judul 3-120 & isi 5-2000 karakter; hapus memakai dialog konfirmasi.
 
 - [ ] **FE-FLP-03: Halaman Profil Akun, Switcher Organisasi & Ganti Sandi (`#/profil`)**
   - **Assignee / PIC:** Filipus (FE)

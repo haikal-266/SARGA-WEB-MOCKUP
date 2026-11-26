@@ -24,6 +24,8 @@ export interface User {
   fullName: string;
   name?: string; // alias for template convenience
   address?: string;
+  /** Penanda admin platform. Backend belum mengirim field ini (BE-MHD-04), jadi opsional. */
+  isPlatformAdmin?: boolean;
   memberships?: Membership[];
 }
 
@@ -136,4 +138,53 @@ export interface WatermarkedDocumentOutput {
   watermarkSummary: string;
   fingerprint: string;
   redactionCount: number;
+}
+
+export interface StructureMember {
+  id: string;
+  userId: string;
+  fullName: string;
+  waNumber: string;
+  position: string;
+  division: string | null;
+  role: Role;
+  joinedAt: string;
+}
+
+export interface StructureResponse {
+  success: boolean;
+  organization: Organization & { inviteCode?: string; inviteExpires?: string | null };
+  leaders: StructureMember[];
+  members: StructureMember[];
+  message?: string;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  author?: { id: string; fullName: string };
+}
+
+export interface AnnouncementListResponse {
+  success: boolean;
+  count: number;
+  announcements: Announcement[];
+}
+
+export interface AnnouncementPayload {
+  title: string;
+  content: string;
+}
+
+export interface UpdateMembershipPayload {
+  role: Role;
+  position: string;
+}
+
+export interface MembershipResponse {
+  success: boolean;
+  membership: Membership;
+  message?: string;
 }

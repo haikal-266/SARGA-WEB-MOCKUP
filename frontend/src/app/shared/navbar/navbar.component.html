@@ -39,6 +39,18 @@
       >Katalog</a>
       <a
         *ngIf="authService.activeMembership()?.status === 'TERVERIFIKASI'"
+        routerLink="/struktur"
+        routerLinkActive="active"
+        class="nav-item"
+        (click)="menuOpen = false"
+      >Struktur</a>
+      <a
+        *ngIf="authService.activeMembership()?.status === 'TERVERIFIKASI'"
+        routerLink="/pengumuman"
+        routerLinkActive="active"
+        class="nav-item"
+        (click)="menuOpen = false"
+      >Pengumuman</a>
         routerLink="/pinjaman-saya"
         routerLinkActive="active"
         class="nav-item"
