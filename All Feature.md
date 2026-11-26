@@ -248,13 +248,13 @@ Setiap tugas diformat dengan struktur standar di bawah ini agar rekan tim dapat 
   - **Berkas Terkait:** `frontend/src/app/features/admin/structure-matrix.component.ts`
   - **Catatan Teknis:** Matriks pengelompokan divisi dan penugasan peran/jabatan anggota di portal pengurus. Dikelompokkan per divisi; simpan memakai `PUT /memberships/:id`. Menolak bila tidak ada pengurus tersisa atau pengurus menurunkan perannya sendiri.
 
-- [ ] **FE-FLP-05: Halaman Direktori Seluruh Organisasi Admin Platform (`#/admin-direktori`)**
+- [x] **FE-FLP-05: Halaman Direktori Seluruh Organisasi Admin Platform (`#/admin-direktori`)**
   - **Assignee / PIC:** Filipus (FE)
-  - **Status:** `Belum Dimulai`
+  - **Status:** `Selesai`
   - **Target Selesai:** 2026-11-30
-  - **Tanggal Selesai:** -
+  - **Tanggal Selesai:** 2026-11-25
   - **Berkas Terkait:** `frontend/src/app/features/admin/platform-directory.component.ts`
-  - **Catatan Teknis:** Tampilan kartu seluruh organisasi untuk akun platform admin, pencarian nama/alamat, serta tombol kelola organisasi.
+  - **Catatan Teknis:** Tampilan kartu seluruh organisasi untuk akun platform admin, pencarian nama/alamat, serta tombol kelola organisasi. Endpoint `/platform/organizations` (BE-MHD-04) belum ada; sementara memakai organisasi dari keanggotaan akun dan ditandai segera hadir. Hanya tampil untuk `isPlatformAdmin`.
 
 ---
 

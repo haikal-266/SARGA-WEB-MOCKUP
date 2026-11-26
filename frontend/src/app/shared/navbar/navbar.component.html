@@ -71,6 +71,13 @@
         (click)="menuOpen = false"
       >Bagan</a>
       <a
+        *ngIf="authService.currentUser()?.isPlatformAdmin"
+        routerLink="/admin-direktori"
+        routerLinkActive="active"
+        class="nav-item"
+        (click)="menuOpen = false"
+      >Direktori</a>
+      <a
         *ngIf="authService.activeMembership()?.status === 'TERVERIFIKASI'"
         routerLink="/barang/tambah"
         routerLinkActive="active"
