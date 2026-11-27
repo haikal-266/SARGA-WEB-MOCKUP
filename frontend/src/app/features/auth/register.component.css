@@ -1,66 +1,220 @@
-.step-one-box {
-  border-bottom: 1px solid var(--color-rule-2);
-  padding-bottom: 1.15rem;
-  margin-bottom: 1.15rem;
+.step-card {
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1.5px solid var(--color-rule, #e3e1da);
 }
 
-.step-title-row {
+.step-head-badge {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
 }
 
-.invite-input-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.invite-code-input {
-  flex: 1 1 200px;
-  font-size: 1rem;
+.badge-step {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: var(--color-accent-soft, #e6f7f4);
+  border: 1px solid var(--color-accent-border, #9fd9d1);
+  color: var(--color-accent-soft-ink, #0f4f46);
+  font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge-step-locked {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 600;
   text-transform: uppercase;
 }
 
-.demo-invite-row {
-  margin-top: 0.65rem;
+.step-title {
+  font-family: var(--font-body, 'Epilogue', sans-serif);
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--color-ink, #111111);
 }
 
-.invite-status-banner {
-  margin-top: 0.65rem;
-  padding: 0.75rem 0.9rem;
+.invite-action-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.uppercase-input {
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.btn-validate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.55rem 1.15rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Banner Pesan Validasi */
+.invite-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem 0.95rem;
   border-radius: 10px;
-  border: 1px solid var(--color-rule);
+  border: 1px solid var(--color-rule, #e3e1da);
 }
 
 .status-ok {
-  background: var(--color-success-soft);
-  border-color: var(--color-success-border);
-  color: var(--color-success-ink);
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #166534;
 }
 
 .status-info {
-  background: var(--color-accent-soft);
-  border-color: var(--color-accent-border);
-  color: var(--color-accent-soft-ink);
+  background: #f0fdfa;
+  border-color: #9fd9d1;
+  color: #0f4f46;
 }
 
 .status-warn {
-  background: var(--color-amber-soft);
-  border-color: var(--color-amber-border);
-  color: var(--color-amber-ink);
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
 }
 
-.doc-section {
+.banner-icon {
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+}
+
+.banner-body strong {
+  display: block;
+  font-size: 0.88rem;
+}
+
+/* Kartu Organisasi & PJ Resmi */
+.org-official-card {
+  margin-top: 0.85rem;
+  padding: 0.95rem 1.1rem;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1.5px solid #9fd9d1;
+  box-shadow: 0 1px 4px rgba(15, 118, 110, 0.06);
+}
+
+.org-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.org-icon-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #e6f7f4;
+  color: #0f766e;
+}
+
+.org-card-title {
+  margin: 0;
+  font-family: var(--font-body, 'Epilogue', sans-serif);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.org-card-type {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.pic-official-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.pic-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  font-size: 0.84rem;
+}
+
+.pic-role {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pic-name,
+.pic-contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.pic-contact span {
+  font-family: var(--font-mono, monospace);
+  color: #0f766e;
+}
+
+/* Dokumen Section */
+.doc-upload-section {
   margin-top: 1.25rem;
-  border-top: 1px dashed var(--color-rule);
-  padding-top: 1.15rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--color-rule, #e3e1da);
+  margin-bottom: 1.25rem;
+}
+
+.canvas-mount {
+  margin-top: 0.5rem;
+}
+
+/* Locked Section */
+.form-section-locked {
+  opacity: 0.55;
+  pointer-events: none;
+  filter: grayscale(0.5);
+  transition: opacity 0.25s ease;
+}
+
+.form-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
 .sidebar-stack {
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
 }

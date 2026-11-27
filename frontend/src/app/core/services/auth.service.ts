@@ -23,36 +23,6 @@ export interface RegisterRequest {
   documentNote?: string;
 }
 
-const KNOWN_DIRECTORY_ORGS: Organization[] = [
-  {
-    id: 'org-graha',
-    name: 'Komunitas Graha Indah',
-    type: 'Komunitas',
-    address: 'Perum Graha Indah Blok C, Jakarta',
-    contact: '081234567890',
-    inviteCode: 'GRAHA2026',
-    status: 'Aktif'
-  },
-  {
-    id: 'org-rt05',
-    name: 'RT 05 / RW 08 Sukamaju',
-    type: 'RT/RW',
-    address: 'Perumahan Sukamaju Blok A-E',
-    contact: '0812-1111-0005',
-    inviteCode: 'RT05-2026',
-    status: 'Aktif'
-  },
-  {
-    id: 'org-nusantara',
-    name: 'PT Nusantara Digital',
-    type: 'Kantor',
-    address: 'Gedung Cyber 2 Lt. 14, Kuningan, Jakarta Selatan',
-    contact: '081298765432',
-    inviteCode: 'NUSANTARA2026',
-    status: 'Aktif'
-  }
-];
-
 @Injectable({
   providedIn: 'root'
 })
@@ -76,6 +46,41 @@ export class AuthService {
   isAdmin(): boolean {
     const membership = this.activeMembership();
     return membership?.role === 'ADMIN';
+  }
+
+  checkInviteCode(code: string): Observable<{
+    success: boolean;
+    message?: string;
+    organization: {
+      id: string;
+      name: string;
+      type?: string;
+      address?: string;
+      contact?: string;
+    };
+    pic: {
+      name: string;
+      contact: string;
+      position?: string;
+    };
+  }> {
+    const cleanCode = encodeURIComponent(code.trim().toUpperCase());
+    return this.http.get<{
+      success: boolean;
+      message?: string;
+      organization: {
+        id: string;
+        name: string;
+        type?: string;
+        address?: string;
+        contact?: string;
+      };
+      pic: {
+        name: string;
+        contact: string;
+        position?: string;
+      };
+    }>(`${this.apiUrl}/invite/${cleanCode}`);
   }
 
   register(data: RegisterRequest): Observable<AuthResponse> {
@@ -129,11 +134,7 @@ export class AuthService {
     const existingMatch = userOrgs.find(
       org => org.inviteCode?.toUpperCase() === normalized && org.status !== 'Nonaktif'
     );
-    if (existingMatch) return existingMatch;
-
-    return KNOWN_DIRECTORY_ORGS.find(
-      org => org.inviteCode.toUpperCase() === normalized && org.status === 'Aktif'
-    ) || null;
+    return existingMatch || null;
   }
 
   hasMembershipInOrg(org: Organization): boolean {

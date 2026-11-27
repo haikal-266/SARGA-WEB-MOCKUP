@@ -70,7 +70,7 @@ import { ToastService } from '../../shared/toast/toast.service';
                   {{ inviteError }}
                 </p>
                 <p id="join-code-hint" class="hint">
-                  Contoh demo: <span class="mono">NUSANTARA2026</span> atau <span class="mono">RT05-2026</span>.
+                  Masukkan kode undangan resmi yang diberikan oleh pengurus organisasi.
                 </p>
               </div>
               <button class="btn-primary btn-block form-submit" type="submit">
@@ -268,15 +268,6 @@ import { ToastService } from '../../shared/toast/toast.service';
                 accept="image/*,.pdf"
                 (change)="onFileSelected($event)"
               />
-              <div class="sample-pills">
-                <span class="tiny muted sample-label">Pilih cepat demo:</span>
-                <button class="btn-pill" type="button" (click)="useSampleKta()">
-                  Gunakan Contoh KTA
-                </button>
-                <button class="btn-pill" type="button" (click)="useSampleKtp()">
-                  Gunakan Contoh KTP
-                </button>
-              </div>
             </div>
 
             <div class="doc-preview-box">
@@ -612,25 +603,7 @@ export class GabungComponent implements OnDestroy {
         }
       };
       reader.readAsDataURL(file);
-    } else {
-      this.joinForm.documentUrl = '/img/sample-kartu-anggota.svg';
     }
-  }
-
-  useSampleKta(): void {
-    this.joinForm.documentType = 'Kartu Tanda Anggota (KTA)';
-    this.joinForm.documentUrl = '/img/sample-kartu-anggota.svg';
-    this.joinForm.documentName = 'Kartu_Anggota_KGI_Demo.svg';
-    this.joinForm.docStatusTag = 'KTA Demo Dipilih';
-    this.toastService.show('KTA Demo Terpilih: Contoh Kartu Anggota siap dikirim.', 'info');
-  }
-
-  useSampleKtp(): void {
-    this.joinForm.documentType = 'KTP (Kartu Tanda Penduduk)';
-    this.joinForm.documentUrl = '/img/sample-ktp.svg';
-    this.joinForm.documentName = 'KTP_Agus_Setiawan_Demo.svg';
-    this.joinForm.docStatusTag = 'KTP Demo Dipilih';
-    this.toastService.show('KTP Demo Terpilih: Contoh KTP siap dikirim.', 'info');
   }
 
   onSubmitJoinModal(): void {

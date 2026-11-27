@@ -310,12 +310,12 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (user) {
       return `Masuk sebagai ${user.fullName || user.name}${org ? ' di ' + org.name : ''}.`;
     }
-    return 'Data demo. Organisasi baru dibuat oleh admin, bukan lewat pendaftaran publik.';
+    return 'Platform pencatatan dan sirkulasi peminjaman alat bersama komunitas dan organisasi.';
   });
 
   boardTitle = computed(() => {
     const org = this.activeOrg();
-    return org ? `Tersedia di ${org.name}` : 'Contoh alat di jaringan SARGA';
+    return org ? `Tersedia di ${org.name}` : 'Daftar alat di jaringan SARGA';
   });
 
   availableItems = computed(() => {

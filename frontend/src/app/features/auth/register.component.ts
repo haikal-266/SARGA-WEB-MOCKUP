@@ -7,14 +7,9 @@ import { WatermarkedDocumentOutput } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { MembershipService } from '../../core/services/membership.service';
 import { AlertComponent } from '../../shared/alert/alert.component';
+import { FormFieldComponent } from '../../shared/form-field/form-field.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 import { IdWatermarkCanvasComponent } from '../../shared/components/id-watermark-canvas/id-watermark-canvas.component';
-
-interface InvitePreset {
-  code: string;
-  name: string;
-  type: string;
-  contact: string;
-}
 
 interface InviteStatus {
   kind: 'ok' | 'info' | 'warn';
@@ -25,28 +20,21 @@ interface InviteStatus {
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AlertComponent, IdWatermarkCanvasComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    AlertComponent,
+    FormFieldComponent,
+    IconComponent,
+    IdWatermarkCanvasComponent
+  ],
   templateUrl: './register.component.html',
   styleUrl: './register.component.css'
 })
 export class RegisterComponent {
   private readonly authService = inject(AuthService);
   private readonly membershipService = inject(MembershipService);
-
-  readonly knownInviteCodes: ReadonlyArray<InvitePreset> = [
-    {
-      code: 'GRAHA2026',
-      name: 'Komunitas Graha Indah',
-      type: 'Komunitas',
-      contact: 'Pengurus Komunitas'
-    },
-    {
-      code: 'NUSANTARA2026',
-      name: 'PT Nusantara Digital',
-      type: 'Kantor',
-      contact: 'Admin Divisi Umum'
-    }
-  ];
 
   form = {
     inviteCode: '',
@@ -55,15 +43,21 @@ export class RegisterComponent {
     address: '',
     password: '',
     documentType: 'KTP',
-    documentUrl: '/img/sample-ktp.svg',
-    documentName: 'KTP_Demo_Sarga.svg',
+    documentUrl: '',
+    documentName: '',
     documentNote: ''
   };
 
+  validatingCode = false;
   stepTwoUnlocked = false;
-  resolvedOrgName = 'Organisasi Tujuan';
+  resolvedOrgName = '';
+  picName = '';
+  picContact = '';
+  picPosition = '';
+  orgType = '';
+  orgAddress = '';
+
   inviteStatus: InviteStatus | null = null;
-  showWatermarkTool = false;
   preparedDocument: WatermarkedDocumentOutput | null = null;
 
   loading = false;
@@ -72,68 +66,77 @@ export class RegisterComponent {
 
   onInviteCodeChanged(): void {
     const code = this.form.inviteCode.trim().toUpperCase();
-    const matched = this.knownInviteCodes.find(entry => entry.code === code);
-    if (matched) {
-      this.stepTwoUnlocked = true;
-      this.resolvedOrgName = matched.name;
-      this.inviteStatus = {
-        kind: 'ok',
-        title: `✓ Organisasi Ditemukan: ${matched.name}`,
-        message: `Jenis: ${matched.type}. Formulir data diri pada Langkah 2 telah dibuka.`
-      };
-      return;
+    if (this.stepTwoUnlocked && code !== this.form.inviteCode.trim().toUpperCase()) {
+      this.stepTwoUnlocked = false;
+      this.resolvedOrgName = '';
+      this.picName = '';
+      this.picContact = '';
+      this.picPosition = '';
     }
 
-    this.stepTwoUnlocked = false;
-    this.resolvedOrgName = code ? `Kode ${code}` : 'Organisasi Tujuan';
-    if (code.length >= 4) {
+    if (code.length >= 3) {
       this.inviteStatus = {
         kind: 'info',
-        title: 'Siap divalidasi',
-        message: 'Klik "Validasi Kode" untuk membuka formulir data diri (kecocokan kode diverifikasi server saat mengirim).'
+        title: `Kode: ${code}`,
+        message: 'Klik "Validasi Kode" untuk memverifikasi organisasi & penanggung jawab resmi.'
       };
     } else {
       this.inviteStatus = null;
+      this.stepTwoUnlocked = false;
     }
-  }
-
-  applyPresetInvite(code: string): void {
-    this.form.inviteCode = code;
-    this.onInviteCodeChanged();
   }
 
   unlockWithCustomCode(): void {
     const code = this.form.inviteCode.trim().toUpperCase();
-    if (code.length < 4) {
+    if (code.length < 3) {
       this.stepTwoUnlocked = false;
       this.inviteStatus = {
         kind: 'warn',
         title: 'Kode terlalu pendek',
-        message: 'Masukkan kode undangan resmi dari pengurus (minimal 4 karakter).'
+        message: 'Masukkan kode undangan resmi dari pengurus (minimal 3 karakter).'
       };
       return;
     }
 
-    const matched = this.knownInviteCodes.find(entry => entry.code === code);
-    if (matched) {
-      this.onInviteCodeChanged();
-      return;
-    }
+    this.validatingCode = true;
+    this.errorMessage = '';
 
-    this.stepTwoUnlocked = true;
-    this.resolvedOrgName = `Organisasi (${code})`;
-    this.inviteStatus = {
-      kind: 'info',
-      title: `Kode ${code} digunakan`,
-      message: 'Formulir Langkah 2 dibuka. Kecocokan kode pada database akan diperiksa server saat pendaftaran dikirim.'
-    };
-  }
+    this.authService.checkInviteCode(code).subscribe({
+      next: res => {
+        this.validatingCode = false;
+        if (res.success && res.organization) {
+          this.stepTwoUnlocked = true;
+          this.resolvedOrgName = res.organization.name;
+          this.orgType = res.organization.type || 'Organisasi';
+          this.orgAddress = res.organization.address || '';
+          this.picName = res.pic?.name || 'Pengurus Organisasi';
+          this.picContact = res.pic?.contact || res.organization.contact || 'Kontak Resmi';
+          this.picPosition = res.pic?.position || 'Ketua / Pengurus Utama';
 
-  selectSampleDocument(url: string, name: string, type: string): void {
-    this.preparedDocument = null;
-    this.form.documentUrl = url;
-    this.form.documentName = name;
-    this.form.documentType = type;
+          this.inviteStatus = {
+            kind: 'ok',
+            title: `Organisasi Terverifikasi: ${this.resolvedOrgName}`,
+            message: `Penanggung jawab resmi: ${this.picName} (${this.picPosition}). Formulir Langkah 2 telah dibuka.`
+          };
+        } else {
+          this.stepTwoUnlocked = false;
+          this.inviteStatus = {
+            kind: 'warn',
+            title: 'Kode Tidak Valid',
+            message: res.message || 'Kode undangan tidak ditemukan atau organisasi belum aktif.'
+          };
+        }
+      },
+      error: (err: HttpErrorResponse) => {
+        this.validatingCode = false;
+        this.stepTwoUnlocked = false;
+        this.inviteStatus = {
+          kind: 'warn',
+          title: 'Validasi Gagal',
+          message: err.error?.message || 'Kode undangan tidak valid atau organisasi tidak aktif.'
+        };
+      }
+    });
   }
 
   onDocumentProcessed(doc: WatermarkedDocumentOutput): void {
@@ -145,8 +148,8 @@ export class RegisterComponent {
 
   onDocumentCleared(): void {
     this.preparedDocument = null;
-    this.form.documentUrl = '/img/sample-ktp.svg';
-    this.form.documentName = 'KTP_Demo_Sarga.svg';
+    this.form.documentUrl = '';
+    this.form.documentName = '';
   }
 
   onSubmit(): void {
@@ -162,6 +165,10 @@ export class RegisterComponent {
     }
     if (this.form.password.length < 6) {
       this.errorMessage = 'Kata sandi minimal 6 karakter.';
+      return;
+    }
+    if (!this.form.documentUrl) {
+      this.errorMessage = 'Harap unggah foto identitas (KTP/KTA) untuk verifikasi pengurus.';
       return;
     }
 

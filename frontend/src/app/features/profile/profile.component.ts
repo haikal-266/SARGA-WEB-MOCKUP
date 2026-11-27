@@ -1,7 +1,9 @@
 import { Component, ElementRef, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/services/auth.service';
 import { Membership } from '../../core/models';
 import { AlertComponent } from '../../shared/alert/alert.component';
@@ -69,8 +71,6 @@ import { ToastService } from '../../shared/toast/toast.service';
 
           <section class="panel" aria-labelledby="pwd-title">
             <h2 id="pwd-title" class="panel-title">Ubah kata sandi</h2>
-            <app-alert class="stack-gap" kind="info" title="Segera hadir"
-              message="Penyimpanan kata sandi baru belum tersedia di server. Isian divalidasi di sini, tetapi belum dikirim." />
             <form (ngSubmit)="submitPassword()" novalidate>
               <div class="field">
                 <label for="pwd-current">Kata sandi saat ini</label>
@@ -149,16 +149,18 @@ export class ProfileComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
+  private readonly http = inject(HttpClient);
 
   readonly user = this.auth.currentUser;
   readonly active = this.auth.activeMembership;
 
   pwd = { current: '', next: '', confirm: '' };
   submitted = false;
+  savingPassword = false;
 
   @ViewChild('docDialog') private docDialog?: ElementRef<HTMLDialogElement>;
 
-  /** Aturan mockup: sandi saat ini wajib, baru minimal 6 karakter, konfirmasi harus sama. */
+  /** Aturan validasi: sandi saat ini wajib, baru minimal 6 karakter, konfirmasi harus sama. */
   get errors(): { current: string | null; next: string | null; confirm: string | null } {
     return {
       current: this.pwd.current ? null : 'Kata sandi saat ini wajib diisi.',
@@ -170,9 +172,24 @@ export class ProfileComponent {
   submitPassword(): void {
     this.submitted = true;
     const e = this.errors;
-    if (e.current || e.next || e.confirm) return;
-    // Endpoint ganti sandi belum ada di backend: jangan menampilkan keberhasilan palsu.
-    this.toast.show('Kata sandi belum dapat diubah: fitur ini belum tersedia di server.', 'info');
+    if (e.current || e.next || e.confirm || this.savingPassword) return;
+
+    this.savingPassword = true;
+    this.http.put<{ success: boolean; message: string }>(`${environment.apiUrl}/auth/password`, {
+      currentPassword: this.pwd.current,
+      newPassword: this.pwd.next
+    }).subscribe({
+      next: (res) => {
+        this.savingPassword = false;
+        this.submitted = false;
+        this.pwd = { current: '', next: '', confirm: '' };
+        this.toast.show(res.message || 'Kata sandi berhasil diperbarui.', 'success');
+      },
+      error: (err) => {
+        this.savingPassword = false;
+        this.toast.show(err.error?.message || 'Gagal mengubah kata sandi.', 'error');
+      }
+    });
   }
 
   initials(name?: string): string {

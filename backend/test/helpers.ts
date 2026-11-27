@@ -130,3 +130,22 @@ export function futureDate(days: number): string {
   date.setDate(date.getDate() + days);
   return date.toISOString();
 }
+
+export async function createPlatformAdmin(options: { waNumber: string; fullName: string }) {
+  const passwordHash = await bcrypt.hash('rahasia123', 10);
+  const user = await prisma.user.create({
+    data: {
+      waNumber: options.waNumber,
+      fullName: options.fullName,
+      passwordHash,
+      address: 'Kantor Pusat Platform SARGA',
+      isPlatformAdmin: true
+    }
+  });
+  const token = jwt.sign(
+    { id: user.id, waNumber: user.waNumber },
+    process.env.JWT_SECRET!,
+    { expiresIn: '7d' as never }
+  );
+  return { user, token };
+}

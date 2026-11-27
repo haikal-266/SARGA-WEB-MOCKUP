@@ -12,18 +12,18 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { WatermarkedDocumentOutput } from '../../../core/models';
+import { IconComponent } from '../../icon/icon.component';
 import {
-  NormalizedRect,
-  RedactionMode,
   formatWibTimestamp,
   generateDocumentFingerprint,
+  getDefaultIdRedactions,
   renderWatermarkedDocument
 } from './watermark-renderer';
 
 @Component({
   selector: 'app-id-watermark-canvas',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, IconComponent],
   templateUrl: './id-watermark-canvas.component.html',
   styleUrl: './id-watermark-canvas.component.css'
 })
@@ -31,6 +31,7 @@ export class IdWatermarkCanvasComponent implements OnChanges, OnDestroy {
   @Input() organizationName = 'Organisasi SARGA';
   @Input() picName = '';
   @Input() picContact = '';
+  @Input() picPosition = 'Ketua / Pengurus Utama';
   @Input() documentType = 'KTP';
   @Input() initialImageUrl = '';
 
@@ -41,17 +42,11 @@ export class IdWatermarkCanvasComponent implements OnChanges, OnDestroy {
 
   imageLoaded = false;
   errorMessage = '';
-  redactionMode: RedactionMode = 'solid';
-  watermarkEnabled = true;
-  redactions: NormalizedRect[] = [];
   fingerprint = generateDocumentFingerprint();
+  sourceFileName = 'dokumen_identitas.jpg';
 
   private loadedImage: HTMLImageElement | null = null;
-  private sourceFileName = 'dokumen_identitas.jpg';
   private activeObjectUrl: string | null = null;
-  private dragStart: { x: number; y: number } | null = null;
-  private dragDraft: NormalizedRect | null = null;
-  private redrawScheduled = false;
 
   get effectiveOrgName(): string {
     return this.organizationName.trim() || 'Organisasi SARGA';
@@ -65,6 +60,10 @@ export class IdWatermarkCanvasComponent implements OnChanges, OnDestroy {
     return this.picContact.trim() || 'Kontak Resmi Pengurus';
   }
 
+  get effectivePicPosition(): string {
+    return this.picPosition.trim() || 'Pengurus Utama';
+  }
+
   get previewStampHeader(): string {
     return `HANYA UNTUK VERIFIKASI KEANGGOTAAN SARGA ${this.effectiveOrgName.toUpperCase()}`;
   }
@@ -76,15 +75,13 @@ export class IdWatermarkCanvasComponent implements OnChanges, OnDestroy {
     }
     if (
       this.imageLoaded &&
-      (changes['organizationName'] || changes['picName'] || changes['picContact'] || changes['documentType'])
+      (changes['organizationName'] ||
+        changes['picName'] ||
+        changes['picContact'] ||
+        changes['picPosition'] ||
+        changes['documentType'])
     ) {
-      this.redrawAndEmit();
-    }
-  }
-
-  onMetadataChange(): void {
-    if (this.imageLoaded) {
-      this.redrawAndEmit();
+      this.renderAndEmit();
     }
   }
 
@@ -95,7 +92,7 @@ export class IdWatermarkCanvasComponent implements OnChanges, OnDestroy {
 
     this.errorMessage = '';
     if (!file.type.startsWith('image/')) {
-      this.errorMessage = 'Berkas harus berupa gambar (JPEG, PNG, atau WebP).';
+      this.errorMessage = 'Berkas harus berupa gambar foto (JPEG, PNG, atau WebP).';
       input.value = '';
       return;
     }
@@ -117,111 +114,56 @@ export class IdWatermarkCanvasComponent implements OnChanges, OnDestroy {
     img.onload = () => {
       this.loadedImage = img;
       this.sourceFileName = fileName;
-      this.redactions = [];
       this.fingerprint = generateDocumentFingerprint();
       this.imageLoaded = true;
-      setTimeout(() => this.redrawAndEmit(false));
+      setTimeout(() => this.renderAndEmit());
     };
     img.onerror = () => {
-      this.errorMessage = 'Gambar tidak dapat dimuat ke kanvas sensor.';
+      this.errorMessage = 'Gambar tidak dapat dimuat. Pastikan berkas gambar valid.';
       this.imageLoaded = false;
     };
     img.src = url;
   }
 
-  applyPresetNikRedaction(): void {
-    this.redactions = [
-      ...this.redactions,
-      { x: 0.25, y: 0.24, w: 0.34, h: 0.08, mode: this.redactionMode }
-    ];
-    this.redrawAndEmit();
-  }
-
-  applyPresetSignatureRedaction(): void {
-    this.redactions = [
-      ...this.redactions,
-      { x: 0.68, y: 0.68, w: 0.24, h: 0.16, mode: this.redactionMode }
-    ];
-    this.redrawAndEmit();
-  }
-
-  undoLastRedaction(): void {
-    if (!this.redactions.length) return;
-    this.redactions = this.redactions.slice(0, -1);
-    this.redrawAndEmit();
-  }
-
-  clearRedactions(): void {
-    this.redactions = [];
-    this.redrawAndEmit();
-  }
-
   resetAll(): void {
     this.revokeObjectUrl();
     this.loadedImage = null;
-    this.redactions = [];
     this.imageLoaded = false;
     this.errorMessage = '';
     this.documentCleared.emit();
   }
 
-  onPointerDown(event: PointerEvent): void {
-    const canvas = this.canvasRef?.nativeElement;
-    if (!canvas) return;
-    canvas.setPointerCapture(event.pointerId);
-    const point = this.toNormalizedPoint(event, canvas);
-    this.dragStart = point;
-    this.dragDraft = { x: point.x, y: point.y, w: 0, h: 0, mode: this.redactionMode };
-  }
-
-  onPointerMove(event: PointerEvent): void {
-    if (!this.dragStart) return;
-    const canvas = this.canvasRef?.nativeElement;
-    if (!canvas) return;
-    const current = this.toNormalizedPoint(event, canvas);
-    this.dragDraft = {
-      x: Math.min(this.dragStart.x, current.x),
-      y: Math.min(this.dragStart.y, current.y),
-      w: Math.abs(current.x - this.dragStart.x),
-      h: Math.abs(current.y - this.dragStart.y),
-      mode: this.redactionMode
-    };
-    this.schedulePreviewDraw();
-  }
-
-  onPointerUp(event: PointerEvent): void {
-    if (!this.dragStart) return;
-    const canvas = this.canvasRef?.nativeElement;
-    if (canvas && canvas.hasPointerCapture(event.pointerId)) {
-      canvas.releasePointerCapture(event.pointerId);
-    }
-    const draft = this.dragDraft;
-    this.dragStart = null;
-    this.dragDraft = null;
-    if (draft && draft.w >= 0.02 && draft.h >= 0.015) {
-      this.redactions = [...this.redactions, draft];
-    }
-    this.redrawAndEmit();
-  }
-
-  redrawAndEmit(forceConfirm = false): void {
+  renderAndEmit(): void {
     const canvas = this.canvasRef?.nativeElement;
     const img = this.loadedImage;
     if (!canvas || !img) return;
 
-    renderWatermarkedDocument(canvas, img, this.redactions, this.dragDraft, this.stampConfig);
+    const config = {
+      organizationName: this.effectiveOrgName,
+      picName: this.effectivePicName,
+      picContact: this.effectivePicContact,
+      picPosition: this.effectivePicPosition,
+      fingerprint: this.fingerprint,
+      watermarkEnabled: true,
+      applyGrayscale: true
+    };
 
-    if (!forceConfirm && this.dragStart) return;
+    // Sensor bawaan otomatis (NIK & TTD) + Grayscale + Watermark Forensik
+    const redactions = getDefaultIdRedactions();
+    renderWatermarkedDocument(canvas, img, redactions, config);
 
-    const summary = this.buildWatermarkSummary();
     try {
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.86);
       canvas.toBlob(
         blob => {
           if (!blob) return;
-          const sanitizedBase = this.sourceFileName.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_');
-          const outName = `${sanitizedBase || 'identitas'}_watermarked.jpg`;
+          const sanitizedBase = this.sourceFileName
+            .replace(/\.[^.]+$/, '')
+            .replace(/[^a-zA-Z0-9_-]/g, '_');
+          const outName = `${sanitizedBase || 'identitas'}_disensor.jpg`;
           const file = new File([blob], outName, { type: 'image/jpeg' });
+          const summary = `${this.previewStampHeader} | PJ: ${this.effectivePicName} (${this.effectivePicContact}) | ${formatWibTimestamp()} | ID: ${this.fingerprint}`;
+
           this.processed.emit({
             dataUrl,
             blob,
@@ -230,49 +172,15 @@ export class IdWatermarkCanvasComponent implements OnChanges, OnDestroy {
             documentType: this.documentType,
             watermarkSummary: summary,
             fingerprint: this.fingerprint,
-            redactionCount: this.redactions.length
+            redactionCount: redactions.length
           });
         },
         'image/jpeg',
-        0.82
+        0.86
       );
     } catch {
-      this.errorMessage = 'Kanvas tidak dapat mengekspor gambar ini. Gunakan foto JPG atau PNG lokal.';
+      this.errorMessage = 'Gagal memproses gambar. Gunakan foto format JPG atau PNG dari perangkat Anda.';
     }
-  }
-
-  private get stampConfig() {
-    return {
-      organizationName: this.effectiveOrgName,
-      picName: this.effectivePicName,
-      picContact: this.effectivePicContact,
-      fingerprint: this.fingerprint,
-      watermarkEnabled: this.watermarkEnabled
-    };
-  }
-
-  private schedulePreviewDraw(): void {
-    if (this.redrawScheduled) return;
-    this.redrawScheduled = true;
-    requestAnimationFrame(() => {
-      this.redrawScheduled = false;
-      const canvas = this.canvasRef?.nativeElement;
-      const img = this.loadedImage;
-      if (canvas && img) {
-        renderWatermarkedDocument(canvas, img, this.redactions, this.dragDraft, this.stampConfig);
-      }
-    });
-  }
-
-  private toNormalizedPoint(event: PointerEvent, canvas: HTMLCanvasElement): { x: number; y: number } {
-    const rect = canvas.getBoundingClientRect();
-    const x = Math.min(1, Math.max(0, (event.clientX - rect.left) / (rect.width || 1)));
-    const y = Math.min(1, Math.max(0, (event.clientY - rect.top) / (rect.height || 1)));
-    return { x, y };
-  }
-
-  private buildWatermarkSummary(): string {
-    return `${this.previewStampHeader} | PJ: ${this.effectivePicName} (${this.effectivePicContact}) | ${formatWibTimestamp()} | ID: ${this.fingerprint}`;
   }
 
   private revokeObjectUrl(): void {

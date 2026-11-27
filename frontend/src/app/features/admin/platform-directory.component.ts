@@ -1,9 +1,10 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/services/auth.service';
-import { Membership } from '../../core/models';
 import { AlertComponent } from '../../shared/alert/alert.component';
 import { ToastService } from '../../shared/toast/toast.service';
 
@@ -42,9 +43,6 @@ import { ToastService } from '../../shared/toast/toast.service';
         message="Halaman ini hanya dapat dibuka oleh admin platform." />
 
       <ng-container *ngIf="isPlatformAdmin">
-        <app-alert class="stack-gap" kind="info" title="Segera hadir"
-          message="Direktori seluruh organisasi belum tersedia di server. Untuk sementara daftar ini hanya berisi organisasi yang terhubung dengan akun Anda." />
-
         <div class="toolbar">
           <div class="field">
             <label for="directory-search">Cari organisasi</label>
@@ -56,20 +54,21 @@ import { ToastService } from '../../shared/toast/toast.service';
         <p class="result-count" role="status" aria-live="polite">{{ filtered.length }} dari {{ organizations.length }} organisasi</p>
 
         <div class="org-grid" *ngIf="filtered.length; else empty">
-          <article class="org-card" *ngFor="let m of filtered; trackBy: trackOrg">
+          <article class="org-card" *ngFor="let o of filtered; trackBy: trackOrg">
             <div>
               <div class="org-head">
-                <span class="badge">{{ m.organization?.type || 'Organisasi' }}</span>
-                <span class="badge" [ngClass]="m.organization?.status === 'AKTIF' ? 'badge-ok' : 'badge-warn'" *ngIf="m.organization?.status">
-                  {{ m.organization?.status }}
+                <span class="badge">{{ o.type || 'Organisasi' }}</span>
+                <span class="badge" [ngClass]="o.status === 'Aktif' || o.status === 'AKTIF' ? 'badge-ok' : 'badge-warn'" *ngIf="o.status">
+                  {{ o.status }}
                 </span>
               </div>
-              <h2 class="org-name">{{ m.organization?.name }}</h2>
-              <p class="org-meta">{{ m.organization?.address || 'Alamat belum diisi' }}</p>
-              <p class="org-meta" *ngIf="m.organization?.contact">Kontak: {{ m.organization?.contact }}</p>
+              <h2 class="org-name">{{ o.name }}</h2>
+              <p class="org-meta">{{ o.address || 'Alamat belum diisi' }}</p>
+              <p class="org-meta" *ngIf="o.contact">Kontak: {{ o.contact }}</p>
+              <p class="org-meta" *ngIf="o._count">Anggota: {{ o._count.memberships || 0 }} | Barang: {{ o._count.items || 0 }}</p>
             </div>
-            <button type="button" class="btn btn-secondary btn-sm" (click)="manage(m)"
-              [attr.aria-label]="'Kelola ' + m.organization?.name">
+            <button type="button" class="btn btn-secondary btn-sm" (click)="manage(o)"
+              [attr.aria-label]="'Kelola ' + o.name">
               Kelola organisasi
             </button>
           </article>
@@ -84,39 +83,60 @@ import { ToastService } from '../../shared/toast/toast.service';
     </div>
   `
 })
-export class PlatformDirectoryComponent {
+export class PlatformDirectoryComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly http = inject(HttpClient);
 
   query = '';
+  platformOrgs: any[] = [];
+  loading = false;
 
   get isPlatformAdmin(): boolean {
     return !!this.auth.currentUser()?.isPlatformAdmin;
   }
 
-  /** Sementara: organisasi dari keanggotaan akun, sampai /platform/organizations (BE-MHD-04) tersedia. */
-  get organizations(): Membership[] {
-    return (this.auth.currentUser()?.memberships ?? []).filter((m) => !!m.organization);
+  ngOnInit(): void {
+    if (this.isPlatformAdmin) {
+      this.loadPlatformOrganizations();
+    }
   }
 
-  get filtered(): Membership[] {
+  loadPlatformOrganizations(): void {
+    this.loading = true;
+    this.http.get<{ success: boolean; total: number; organizations: any[] }>(`${environment.apiUrl}/platform/organizations`)
+      .subscribe({
+        next: (res) => {
+          this.loading = false;
+          this.platformOrgs = res.organizations || [];
+        },
+        error: () => {
+          this.loading = false;
+        }
+      });
+  }
+
+  get organizations(): any[] {
+    if (this.platformOrgs.length > 0) return this.platformOrgs;
+    return (this.auth.currentUser()?.memberships ?? []).map(m => m.organization).filter(Boolean);
+  }
+
+  get filtered(): any[] {
     const q = this.query.trim().toLowerCase();
     if (!q) return this.organizations;
-    return this.organizations.filter((m) => {
-      const o = m.organization!;
-      return [o.name, o.type, o.address].some((v) => (v || '').toLowerCase().includes(q));
+    return this.organizations.filter((o) => {
+      return [o.name, o.type, o.address, o.contact].some((v: string) => (v || '').toLowerCase().includes(q));
     });
   }
 
-  manage(m: Membership): void {
-    // Masuk ke konteks organisasi lalu buka halaman struktur untuk pengelolaan.
-    this.auth.setActiveOrg(m.orgId);
-    this.toast.show(`Mengelola ${m.organization?.name}.`, 'info');
-    this.router.navigate([m.role === 'ADMIN' ? '/admin-bagan' : '/struktur']);
+  manage(org: any): void {
+    this.auth.setActiveOrg(org.id);
+    this.toast.show(`Mengelola ${org.name}.`, 'info');
+    this.router.navigate(['/admin-bagan']);
   }
 
-  trackOrg(_: number, m: Membership): string {
-    return m.orgId;
+  trackOrg(_: number, org: any): string {
+    return org.id;
   }
 }

@@ -5,33 +5,96 @@
 .label {
   display: block;
   margin-bottom: 0.35rem;
-  color: var(--color-ink-2);
+  color: var(--color-ink, #111111);
+  font-family: var(--font-body, 'Epilogue', sans-serif);
   font-size: 0.88rem;
   font-weight: 600;
 }
 
-.form-input {
+/* Universal Modern Input / Select / Textarea Styling */
+.form-input,
+.form-select,
+.form-textarea,
+input[type="text"]:not(.raw),
+input[type="password"]:not(.raw),
+input[type="search"]:not(.raw),
+input[type="tel"]:not(.raw),
+input[type="email"]:not(.raw),
+input[type="date"]:not(.raw),
+input[type="number"]:not(.raw),
+select:not(.raw),
+textarea:not(.raw) {
   width: 100%;
   min-height: 44px;
-  padding: 0.62rem 0.75rem;
-  border: 1px solid var(--color-muted-light);
-  border-radius: var(--radius-input);
+  padding: 0.55rem 0.95rem;
+  border: 1.5px solid var(--color-rule, #e3e1da);
+  border-radius: 10px;
   background: #ffffff;
-  color: var(--color-ink);
-  font: inherit;
+  color: var(--color-ink, #111111);
+  font-family: var(--font-body, 'Epilogue', sans-serif);
   font-size: 0.92rem;
+  font-weight: 500;
+  line-height: 1.45;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  box-sizing: border-box;
 }
 
-textarea.form-input {
+/* Custom Styled Select with SVG Chevron Arrow */
+select:not(.raw),
+.form-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23111111' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+  background-size: 16px 16px;
+  padding-right: 2.5rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+select:not(.raw) option {
+  font-weight: 500;
+  padding: 0.4rem 0.5rem;
+  background: #ffffff;
+  color: var(--color-ink, #111111);
+}
+
+textarea.form-input,
+textarea.form-textarea {
   min-height: 5.5rem;
   resize: vertical;
 }
 
-.form-input:hover:not(:disabled):not(:focus-visible) {
-  border-color: var(--color-muted);
+.form-input:hover:not(:disabled):not(:focus),
+.form-select:hover:not(:disabled):not(:focus),
+select:hover:not(:disabled):not(:focus),
+input:hover:not(:disabled):not(:focus) {
+  border-color: #cbd5e1;
 }
 
+.form-input:focus,
+.form-select:focus,
+select:focus,
+input:focus,
+textarea:focus,
 .form-input:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: #0f766e !important;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.18) !important;
+}
+
+.form-input.is-invalid,
+.form-input[aria-invalid="true"],
+input.is-invalid,
+select.is-invalid {
+  border-color: var(--color-rose-ink, #e11d48) !important;
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.15) !important;
+}
+
 .btn-primary:focus-visible,
 .btn-secondary:focus-visible,
 .btn-danger:focus-visible,
@@ -41,7 +104,7 @@ textarea.form-input {
 .admin-nav a:focus-visible,
 .doc-thumb-preview:focus-visible,
 .modal-close:focus-visible {
-  outline: 3px solid var(--color-focus);
+  outline: 3px solid var(--color-focus, #0f766e);
   outline-offset: 2px;
 }
 

@@ -1,151 +1,163 @@
-<header class="app-header">
-  <div class="header-container container">
+<header class="site-header">
+  <div class="wrap">
     <div class="header-top">
-      <a routerLink="/" class="logo" aria-label="SARGA, Beranda">
-        <span class="logo-badge" aria-hidden="true">🌿</span>
-        <span class="logo-text">SARGA</span>
+      <a class="brand" routerLink="/beranda" aria-label="SARGA, beranda" (click)="menuOpen = false">
+        <img
+          src="/assets/image.png"
+          alt="Logo SARGA"
+          onerror="this.onerror=null;this.src='/image.png';"
+        />
+        <span class="brand-text">
+          <span class="brand-name">SARGA</span>
+          <span class="org-badge" id="header-org">{{ activeOrgName }}</span>
+        </span>
       </a>
 
+      <div class="header-actions">
+        <ng-container *ngIf="currentUser$ | async as user; else guestActions">
+          <div class="org-switch" *ngIf="user.memberships && user.memberships.length > 0">
+            <label class="sr-only" for="org-picker">Organisasi aktif</label>
+            <select
+              class="select-inline"
+              id="org-picker"
+              [value]="activeOrgId"
+              (change)="onOrganizationChange($event)"
+            >
+              <option value="" disabled *ngIf="!activeOrgId">Pilih organisasi</option>
+              <option *ngFor="let m of user.memberships" [value]="m.orgId">
+                {{ m.organization?.name || 'Organisasi ' + m.orgId }}
+              </option>
+            </select>
+          </div>
+
+          <a class="user-chip" routerLink="/profil" (click)="menuOpen = false" aria-label="Profil akun">
+            <span class="avatar avatar-sm" aria-hidden="true">{{ initials }}</span>
+            <span class="user-chip-name">{{ userFirstName }}</span>
+          </a>
+
+          <button class="btn-ghost btn-sm" type="button" (click)="onLogout()">Keluar</button>
+        </ng-container>
+
+        <ng-template #guestActions>
+          <a class="btn-secondary btn-sm" routerLink="/login" (click)="menuOpen = false">Masuk</a>
+          <a class="btn-primary btn-sm" routerLink="/daftar" (click)="menuOpen = false">Daftar</a>
+        </ng-template>
+      </div>
+
       <button
+        class="mobile-menu-btn"
         type="button"
-        class="menu-toggle"
         [attr.aria-expanded]="menuOpen"
-        aria-controls="primary-navigation"
+        aria-controls="mobile-menu-drawer"
         (click)="menuOpen = !menuOpen"
       >
-        <span class="menu-icon" aria-hidden="true"><span></span><span></span></span>
-        {{ menuOpen ? 'Tutup menu' : 'Menu' }}
+        {{ menuOpen ? 'Tutup' : 'Menu' }}
       </button>
     </div>
 
-    <nav
-      id="primary-navigation"
-      class="nav-links"
-      [class.is-open]="menuOpen"
-      aria-label="Navigasi utama"
-    >
+    <nav class="primary-nav" aria-label="Navigasi utama">
       <a
-        routerLink="/"
-        routerLinkActive="active"
+        class="nav-link"
+        routerLink="/beranda"
+        routerLinkActive="nav-link-active"
         [routerLinkActiveOptions]="{ exact: true }"
-        class="nav-item"
         (click)="menuOpen = false"
       >Beranda</a>
       <a
+        class="nav-link"
         routerLink="/katalog"
-        routerLinkActive="active"
-        class="nav-item"
+        routerLinkActive="nav-link-active"
         (click)="menuOpen = false"
       >Katalog</a>
       <a
-        *ngIf="authService.activeMembership()?.status === 'TERVERIFIKASI'"
-        routerLink="/struktur"
-        routerLinkActive="active"
-        class="nav-item"
-        (click)="menuOpen = false"
-      >Struktur</a>
-      <a
-        *ngIf="authService.activeMembership()?.status === 'TERVERIFIKASI'"
-        routerLink="/pengumuman"
-        routerLinkActive="active"
-        class="nav-item"
-        (click)="menuOpen = false"
-      >Pengumuman</a>
+        class="nav-link"
+        *ngIf="isVerified"
         routerLink="/pinjaman-saya"
-        routerLinkActive="active"
-        class="nav-item"
+        routerLinkActive="nav-link-active"
         (click)="menuOpen = false"
       >Pinjaman saya</a>
       <a
-        *ngIf="authService.activeMembership()?.status === 'TERVERIFIKASI'"
+        class="nav-link"
+        *ngIf="isVerified"
         routerLink="/barang-saya"
-        routerLinkActive="active"
-        class="nav-item"
+        routerLinkActive="nav-link-active"
         (click)="menuOpen = false"
       >Barang saya</a>
       <a
-        *ngIf="authService.isAdmin()"
-        routerLink="/admin-bagan"
-        routerLinkActive="active"
-        class="nav-item"
+        class="nav-link"
+        *ngIf="isVerified"
+        routerLink="/struktur"
+        routerLinkActive="nav-link-active"
         (click)="menuOpen = false"
-      >Bagan</a>
+      >Struktur</a>
       <a
-        *ngIf="authService.currentUser()?.isPlatformAdmin"
+        class="nav-link"
+        *ngIf="isVerified"
+        routerLink="/pengumuman"
+        routerLinkActive="nav-link-active"
+        (click)="menuOpen = false"
+      >Pengumuman</a>
+      <a
+        class="nav-link nav-link-admin"
+        *ngIf="isAdmin"
+        routerLink="/admin-monitoring"
+        routerLinkActive="nav-link-active"
+        (click)="menuOpen = false"
+      >Pengurus</a>
+      <a
+        class="nav-link"
+        *ngIf="isPlatformAdmin"
         routerLink="/admin-direktori"
-        routerLinkActive="active"
-        class="nav-item"
+        routerLinkActive="nav-link-active"
         (click)="menuOpen = false"
       >Direktori</a>
-      <a
-        *ngIf="authService.activeMembership()?.status === 'TERVERIFIKASI'"
-        routerLink="/barang/tambah"
-        routerLinkActive="active"
-        class="nav-item"
-        (click)="menuOpen = false"
-      >Tambah barang</a>
-      <a
-        *ngIf="currentUser$ | async"
-        routerLink="/status-akun"
-        routerLinkActive="active"
-        class="nav-item"
-        (click)="menuOpen = false"
-      >Status akun</a>
-      <a
-        *ngIf="currentUser$ | async"
-        routerLink="/gabung"
-        routerLinkActive="active"
-        class="nav-item"
-        (click)="menuOpen = false"
-      >Gabung</a>
-      <a
-        *ngIf="authService.isAdmin() && authService.activeMembership()?.status === 'TERVERIFIKASI'"
-        routerLink="/admin-monitoring"
-        routerLinkActive="active"
-        class="nav-item"
-        (click)="menuOpen = false"
-      >Monitoring</a>
-      <a
-        *ngIf="authService.isAdmin() && authService.activeMembership()?.status === 'TERVERIFIKASI'"
-        routerLink="/admin-verifikasi"
-        routerLinkActive="active"
-        class="nav-item"
-        (click)="menuOpen = false"
-      >Verifikasi</a>
-      <a
-        *ngIf="authService.isAdmin() && authService.activeMembership()?.status === 'TERVERIFIKASI'"
-        routerLink="/admin-anggota"
-        routerLinkActive="active"
-        class="nav-item"
-        (click)="menuOpen = false"
-      >Anggota</a>
-
-      <ng-container *ngIf="currentUser$ | async as user; else guestActions">
-        <label class="organization-picker" *ngIf="user.memberships?.length; else noOrganization">
-          <span class="visually-hidden">Organisasi aktif</span>
-          <select
-            [value]="authService.activeMembership()?.orgId ?? ''"
-            (change)="onOrganizationChange($event)"
-          >
-            <option value="" disabled>Pilih organisasi</option>
-            <option *ngFor="let membership of user.memberships" [value]="membership.orgId">
-              {{ membership.organization?.name || 'Organisasi ' + membership.orgId }}
-            </option>
-          </select>
-        </label>
-        <ng-template #noOrganization>
-          <span class="organization-status">Belum tergabung organisasi</span>
-        </ng-template>
-
-        <span class="role-label">Peran: {{ roleLabel }}</span>
-        <a routerLink="/profil" routerLinkActive="active" class="nav-item user-greeting" (click)="menuOpen = false">Halo, {{ user.fullName }}</a>
-        <button type="button" (click)="onLogout()" class="btn-link">Keluar</button>
-      </ng-container>
-
-      <ng-template #guestActions>
-        <a routerLink="/auth/register" class="nav-item" (click)="menuOpen = false">Daftar</a>
-        <a routerLink="/auth/login" class="btn btn-sm btn-primary" (click)="menuOpen = false">Masuk</a>
-      </ng-template>
     </nav>
+  </div>
+
+  <div class="mobile-drawer wrap" id="mobile-menu-drawer" [hidden]="!menuOpen">
+    <div class="drawer-section">
+      <p class="drawer-title">Navigasi</p>
+      <a class="drawer-link" routerLink="/beranda" (click)="menuOpen = false">Beranda</a>
+      <a class="drawer-link" routerLink="/katalog" (click)="menuOpen = false">Katalog</a>
+      <a class="drawer-link" *ngIf="isVerified" routerLink="/pinjaman-saya" (click)="menuOpen = false">Pinjaman saya</a>
+      <a class="drawer-link" *ngIf="isVerified" routerLink="/barang-saya" (click)="menuOpen = false">Barang saya</a>
+      <a class="drawer-link" *ngIf="isVerified" routerLink="/struktur" (click)="menuOpen = false">Struktur</a>
+      <a class="drawer-link" *ngIf="isVerified" routerLink="/pengumuman" (click)="menuOpen = false">Pengumuman</a>
+      <a class="drawer-link" *ngIf="isAdmin" routerLink="/admin-monitoring" (click)="menuOpen = false">Pengurus</a>
+      <a class="drawer-link" *ngIf="isPlatformAdmin" routerLink="/admin-direktori" (click)="menuOpen = false">Direktori</a>
+    </div>
+
+    <ng-container *ngIf="currentUser$ | async as user; else guestDrawer">
+      <div class="drawer-section" *ngIf="user.memberships && user.memberships.length > 0">
+        <p class="drawer-title">Organisasi aktif</p>
+        <select
+          class="select-inline select-block"
+          [value]="activeOrgId"
+          (change)="onOrganizationChange($event)"
+        >
+          <option *ngFor="let m of user.memberships" [value]="m.orgId">
+            {{ m.organization?.name || 'Organisasi ' + m.orgId }}
+          </option>
+        </select>
+      </div>
+
+      <div class="drawer-section">
+        <p class="drawer-title">Akun</p>
+        <a class="drawer-link" routerLink="/profil" (click)="menuOpen = false">Profil</a>
+        <a class="drawer-link" routerLink="/status-akun" (click)="menuOpen = false">Status akun</a>
+        <a class="drawer-link" routerLink="/gabung" (click)="menuOpen = false">Gabung organisasi</a>
+        <a class="drawer-link" *ngIf="isVerified" routerLink="/barang/tambah" (click)="menuOpen = false">Tambah barang</a>
+        <button class="drawer-link drawer-logout" type="button" (click)="onLogout()">Keluar dari akun</button>
+      </div>
+    </ng-container>
+
+    <ng-template #guestDrawer>
+      <div class="drawer-section">
+        <p class="drawer-title">Akun</p>
+        <a class="drawer-link" routerLink="/login" (click)="menuOpen = false">Masuk</a>
+        <a class="drawer-link" routerLink="/daftar" (click)="menuOpen = false">Daftar anggota</a>
+        <a class="drawer-link" routerLink="/status-akun" (click)="menuOpen = false">Cek status pendaftaran</a>
+      </div>
+    </ng-template>
   </div>
 </header>

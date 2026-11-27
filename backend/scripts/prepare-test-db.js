@@ -9,9 +9,11 @@ const bin = path.join(
   process.platform === 'win32' ? 'prisma.cmd' : 'prisma'
 );
 
-const result = spawnSync(bin, ['db', 'push', '--skip-generate'], {
+const command = process.platform === 'win32' ? `"${bin}"` : bin;
+
+const result = spawnSync(command, ['db', 'push', '--skip-generate'], {
   stdio: 'inherit',
-  shell: process.platform === 'win32',
+  shell: true,
   env: { ...process.env, DATABASE_URL: 'file:./test.db' }
 });
 

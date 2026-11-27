@@ -4,7 +4,7 @@
       <p class="kicker">Pendaftaran anggota · Alur Verifikasi</p>
       <h1>Daftar dengan kode undangan organisasi</h1>
       <p class="lede">
-        Masukkan kode undangan dari pengurus organisasi Anda. Setelah kode dikonfirmasi, lengkapi data diri dan foto dokumen keanggotaan (KTP/KTA) sebagai acuan verifikasi pengurus.
+        Masukkan kode undangan resmi dari pengurus organisasi Anda. Foto identitas yang diunggah akan otomatis disensor (NIK &amp; TTD) dan diberi watermark forensik penanggung jawab.
       </p>
     </div>
   </div>
@@ -32,85 +32,118 @@
   <div *ngIf="!successMessage" class="grid-2">
     <div class="panel panel-pad">
       <form (ngSubmit)="onSubmit()" [attr.aria-busy]="loading" novalidate>
-        <!-- LANGKAH 1: KODE UNDANGAN -->
-        <div class="step-one-box">
-          <div class="step-title-row">
-            <span class="tag-in">Langkah 1</span>
-            <label class="label" for="register-invite-code" style="margin:0;font-size:.95rem">
-              Masukkan kode undangan dari pengurus
-            </label>
+        <!-- LANGKAH 1: KODE UNDANGAN & VERIFIKASI ORGANISASI -->
+        <div class="step-card">
+          <div class="step-head-badge">
+            <span class="badge-step">Langkah 1</span>
+            <span class="step-title">Kode Undangan Organisasi</span>
           </div>
 
-          <div class="invite-input-row">
-            <input
-              id="register-invite-code"
-              name="inviteCode"
-              type="text"
-              class="form-input mono invite-code-input"
-              placeholder="Contoh: GRAHA2026"
-              autocomplete="off"
-              autocapitalize="characters"
-              required
-              [(ngModel)]="form.inviteCode"
-              (ngModelChange)="onInviteCodeChanged()"
-            />
+          <div class="invite-action-row">
+            <div style="flex:1">
+              <input
+                id="register-invite-code"
+                name="inviteCode"
+                type="text"
+                class="form-input mono uppercase-input"
+                placeholder="Misal: GRAHA2026"
+                autocomplete="off"
+                autocapitalize="characters"
+                required
+                [(ngModel)]="form.inviteCode"
+                (ngModelChange)="onInviteCodeChanged()"
+              />
+            </div>
             <button
               type="button"
-              class="btn-secondary"
+              class="btn-primary btn-validate"
+              [disabled]="validatingCode || !form.inviteCode"
               (click)="unlockWithCustomCode()"
             >
-              Validasi Kode
+              <app-icon *ngIf="!validatingCode" name="search" [size]="16" />
+              <span>{{ validatingCode ? 'Memeriksa...' : 'Validasi Kode' }}</span>
             </button>
           </div>
 
-          <div class="demo-invite-row">
-            <p class="tiny muted" style="margin:0 0 .35rem">Pilih contoh kode organisasi aktif:</p>
-            <div class="btn-row">
-              <button
-                *ngFor="let preset of knownInviteCodes"
-                type="button"
-                class="btn-pill"
-                (click)="applyPresetInvite(preset.code)"
-              >
-                {{ preset.code }} ({{ preset.name }})
-              </button>
+          <!-- Status Pesan Validasi -->
+          <div *ngIf="inviteStatus" class="invite-banner" [ngClass]="'status-' + inviteStatus.kind">
+            <div class="banner-icon">
+              <app-icon [name]="inviteStatus.kind === 'ok' ? 'check-circle' : 'alert-circle'" [size]="18" />
+            </div>
+            <div class="banner-body">
+              <strong>{{ inviteStatus.title }}</strong>
+              <p class="small" style="margin:0.15rem 0 0">{{ inviteStatus.message }}</p>
             </div>
           </div>
 
-          <div *ngIf="inviteStatus" class="invite-status-banner" [ngClass]="'status-' + inviteStatus.kind">
-            <strong>{{ inviteStatus.title }}</strong>
-            <p class="small" style="margin:.2rem 0 0">{{ inviteStatus.message }}</p>
+          <!-- Kartu Organisasi & Penanggung Jawab Tertinggi Resmi -->
+          <div *ngIf="stepTwoUnlocked" class="org-official-card">
+            <div class="org-card-header">
+              <div class="org-icon-pill">
+                <app-icon name="building" [size]="20" />
+              </div>
+              <div>
+                <p class="org-card-title">{{ resolvedOrgName }}</p>
+                <p class="org-card-type">{{ orgType }} · {{ orgAddress || 'Terverifikasi di Platform SARGA' }}</p>
+              </div>
+            </div>
+
+            <div class="pic-official-box">
+              <div class="pic-row">
+                <span class="pic-role">Penanggung Jawab Tertinggi:</span>
+                <span class="pic-name">
+                  <app-icon name="user" [size]="14" />
+                  <strong>{{ picName }}</strong> ({{ picPosition }})
+                </span>
+              </div>
+              <div class="pic-row">
+                <span class="pic-role">Kontak Resmi Organisasi:</span>
+                <span class="pic-contact">
+                  <app-icon name="phone" [size]="14" />
+                  <span>{{ picContact }}</span>
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- LANGKAH 2: FORMULIR DATA DIRI ACUAN VERIFIKASI -->
+        <!-- LANGKAH 2: FORMULIR DATA DIRI & DOKUMEN IDENTITAS -->
         <div [class.form-section-locked]="!stepTwoUnlocked" [attr.aria-disabled]="!stepTwoUnlocked">
-          <div class="step-title-row" style="margin-bottom:.6rem">
-            <span class="tag-neutral">Langkah 2</span>
-            <h2 style="font-size:1rem;margin:0">Formulir Data Diri Calon Anggota</h2>
+          <div class="step-head-badge" style="margin-top:1.5rem;margin-bottom:0.75rem">
+            <span [class]="stepTwoUnlocked ? 'badge-step' : 'badge-step-locked'">Langkah 2</span>
+            <span class="step-title">Formulir Data Diri Calon Anggota</span>
           </div>
-          <p class="tiny muted" style="margin:0 0 1rem">
-            {{ stepTwoUnlocked ? 'Data berikut menjadi acuan pengurus saat memverifikasi pendaftaran Anda.' : 'Masukkan dan validasi kode undangan pada Langkah 1 untuk membuka formulir ini.' }}
+
+          <p class="tiny muted" style="margin:0 0 1.25rem">
+            {{ stepTwoUnlocked ? 'Lengkapi data diri dan foto identitas Anda. Data ini menjadi acuan pengurus saat memvalidasi keanggotaan.' : 'Validasi kode undangan di Langkah 1 untuk membuka formulir ini.' }}
           </p>
 
-          <div class="field">
-            <label class="label" for="register-full-name">Nama lengkap</label>
+          <app-form-field
+            label="Nama Lengkap"
+            htmlFor="register-full-name"
+            [required]="true"
+            hint="Sesuai dengan nama yang tercantum pada identitas resmi."
+          >
             <input
               id="register-full-name"
               name="fullName"
               type="text"
               class="form-input"
-              placeholder="Nama sesuai identitas resmi"
+              placeholder="Contoh: Hendra Kusuma"
               autocomplete="name"
               required
               [disabled]="!stepTwoUnlocked"
               [(ngModel)]="form.fullName"
             />
-          </div>
+          </app-form-field>
 
           <div class="form-grid two">
-            <div class="field">
-              <label class="label" for="register-wa-number">Nomor HP / WhatsApp</label>
+            <app-form-field
+              label="Nomor HP / WhatsApp"
+              htmlFor="register-wa-number"
+              [required]="true"
+              hint="Digunakan untuk masuk akun dan verifikasi."
+            >
               <input
                 id="register-wa-number"
                 name="waNumber"
@@ -123,27 +156,32 @@
                 [disabled]="!stepTwoUnlocked"
                 [(ngModel)]="form.waNumber"
               />
-              <p class="hint">Untuk masuk akun dan dihubungi pengurus.</p>
-            </div>
+            </app-form-field>
 
-            <div class="field">
-              <label class="label" for="register-address">Alamat / Divisi / Unit</label>
+            <app-form-field
+              label="Alamat / Divisi / Unit"
+              htmlFor="register-address"
+              hint="Domisili atau divisi di lingkungan organisasi."
+            >
               <input
                 id="register-address"
                 name="address"
                 type="text"
                 autocomplete="street-address"
                 class="form-input"
-                placeholder="Contoh: Blok E1 No. 15 / Divisi B"
+                placeholder="Contoh: Blok E1 No. 15 / Tim Teknis"
                 [disabled]="!stepTwoUnlocked"
                 [(ngModel)]="form.address"
               />
-              <p class="hint">Alamat domisili atau unit kerja.</p>
-            </div>
+            </app-form-field>
           </div>
 
-          <div class="field">
-            <label class="label" for="register-password">Kata sandi</label>
+          <app-form-field
+            label="Kata Sandi"
+            htmlFor="register-password"
+            [required]="true"
+            hint="Minimal 6 karakter kombinasi huruf atau angka."
+          >
             <input
               id="register-password"
               name="password"
@@ -151,100 +189,62 @@
               autocomplete="new-password"
               minlength="6"
               class="form-input"
-              placeholder="Minimal 6 karakter"
+              placeholder="Masukkan kata sandi aman"
               required
               [disabled]="!stepTwoUnlocked"
               [(ngModel)]="form.password"
             />
-          </div>
+          </app-form-field>
 
-          <!-- DOKUMEN KEANGGOTAAN + SENSOR & WATERMARK -->
-          <div class="doc-section">
-            <p class="label" style="margin-bottom:.25rem">Foto Dokumen Keanggotaan (Acuan Verifikasi Pengurus)</p>
-            <p class="hint" style="margin:0 0 .6rem">
-              Pilih jenis dokumen lalu gunakan alat sensor &amp; watermark atau pilih contoh KTP/KTA.
-            </p>
-
-            <div class="form-grid two" style="margin-top:0;margin-bottom:.65rem">
-              <div class="field">
-                <label class="label" for="reg-doc-type" style="font-size:.82rem;color:var(--color-muted)">Jenis Dokumen</label>
+          <!-- DOKUMEN IDENTITAS: SENSOR & WATERMARK OTOMATIS -->
+          <div class="doc-upload-section">
+            <div class="form-grid two">
+              <app-form-field
+                label="Jenis Dokumen Identitas"
+                htmlFor="reg-doc-type"
+                [required]="true"
+              >
                 <select
                   id="reg-doc-type"
                   name="documentType"
-                  class="form-input"
+                  class="form-select"
                   [disabled]="!stepTwoUnlocked"
                   [(ngModel)]="form.documentType"
                 >
                   <option value="KTP">KTP (Kartu Tanda Penduduk)</option>
                   <option value="KTA">KTA (Kartu Tanda Anggota)</option>
-                  <option value="Surat Keterangan Pengurus">Surat Keterangan Pengurus</option>
+                  <option value="SIM / Lainnya">SIM / Dokumen Resmi Lainnya</option>
                 </select>
-              </div>
+              </app-form-field>
 
-              <div class="field">
-                <label class="label" for="reg-doc-note" style="font-size:.82rem;color:var(--color-muted)">Catatan dokumen (opsional)</label>
+              <app-form-field
+                label="Catatan Dokumen (Opsional)"
+                htmlFor="reg-doc-note"
+                hint="Informasi tambahan untuk pengurus verifikator."
+              >
                 <input
                   id="reg-doc-note"
                   name="documentNote"
                   type="text"
                   class="form-input"
-                  placeholder="Contoh: Sudah konfirmasi ke pengurus"
+                  placeholder="Contoh: Sudah konfirmasi via WA"
                   [disabled]="!stepTwoUnlocked"
                   [(ngModel)]="form.documentNote"
                 />
-              </div>
+              </app-form-field>
             </div>
 
-            <div class="btn-row" style="margin-bottom:.65rem">
-              <button
-                type="button"
-                class="btn-secondary btn-sm"
-                [disabled]="!stepTwoUnlocked"
-                (click)="showWatermarkTool = !showWatermarkTool"
-              >
-                {{ showWatermarkTool ? 'Sembunyikan Editor Sensor & Watermark' : 'Unggah / Sensor & Watermark KTP/KTA (FE-WLD-20)' }}
-              </button>
-              <button
-                type="button"
-                class="btn-pill"
-                [disabled]="!stepTwoUnlocked"
-                (click)="selectSampleDocument('/img/sample-ktp.svg', 'KTP_Demo_Sarga.svg', 'KTP')"
-              >
-                Pakai Contoh KTP
-              </button>
-              <button
-                type="button"
-                class="btn-pill"
-                [disabled]="!stepTwoUnlocked"
-                (click)="selectSampleDocument('/img/sample-kartu-anggota.svg', 'KTA_Demo_Sarga.svg', 'KTA')"
-              >
-                Pakai Contoh KTA
-              </button>
-            </div>
-
-            <div *ngIf="showWatermarkTool && stepTwoUnlocked" style="margin-bottom:.75rem">
+            <!-- Komponen Sensor & Watermark Otomatis Bawaan -->
+            <div class="canvas-mount" *ngIf="stepTwoUnlocked">
               <app-id-watermark-canvas
                 [organizationName]="resolvedOrgName"
                 [documentType]="form.documentType"
-                picName="Pengurus Verifikator"
-                picContact="Kontak Resmi Organisasi"
+                [picName]="picName"
+                [picContact]="picContact"
+                [picPosition]="picPosition"
                 (processed)="onDocumentProcessed($event)"
                 (documentCleared)="onDocumentCleared()"
               />
-            </div>
-
-            <div class="doc-preview-box">
-              <div class="doc-preview-header">
-                <span class="small strong">Pratinjau Dokumen Verifikasi</span>
-                <span class="tag-in">Siap Dikirim</span>
-              </div>
-              <div class="doc-preview-img-wrap">
-                <img [src]="form.documentUrl" alt="Pratinjau dokumen verifikasi" />
-              </div>
-              <p class="tiny muted" style="margin:.4rem 0 0">
-                Berkas: <span class="mono">{{ form.documentName }}</span>
-                <span *ngIf="preparedDocument"> · {{ preparedDocument.redactionCount }} area disensor ({{ preparedDocument.fingerprint }})</span>
-              </p>
             </div>
           </div>
 
@@ -253,55 +253,60 @@
             class="btn-primary btn-block form-submit"
             [disabled]="loading || !stepTwoUnlocked"
           >
-            {{ loading ? 'Mengirim pendaftaran...' : 'Kirim Pendaftaran & Dokumen Verifikasi' }}
+            <app-icon *ngIf="!loading" name="check" [size]="18" />
+            <span>{{ loading ? 'Mengirim pendaftaran...' : 'Kirim Pendaftaran & Dokumen Verifikasi' }}</span>
           </button>
         </div>
       </form>
 
-      <p class="hint" style="margin-top:.85rem">
+      <p class="hint" style="margin-top:1.25rem;text-align:center">
         Sudah memiliki akun? <a class="link" routerLink="/auth/login">Masuk di sini</a>.
       </p>
     </div>
 
+    <!-- SIDEBAR ALUR & PRIVASI -->
     <div class="sidebar-stack">
       <div class="panel panel-pad">
-        <h2 style="font-size:1rem;margin:0 0 .5rem">Alur Verifikasi Pendaftaran</h2>
+        <h2 style="font-size:1rem;margin:0 0 0.85rem">Alur Verifikasi Pendaftaran</h2>
         <ol class="timeline">
           <li class="timeline-item" [class.done]="stepTwoUnlocked" [class.current]="!stepTwoUnlocked">
             <span class="timeline-dot" aria-hidden="true"></span>
             <div>
               <strong>1. Masukkan Kode Pengurus</strong>
-              <p class="tiny muted" style="margin:.15rem 0 0">Memastikan akun terhubung ke organisasi yang sah.</p>
+              <p class="tiny muted" style="margin:.15rem 0 0">Memastikan akun terhubung ke organisasi dan penanggung jawab yang sah.</p>
             </div>
           </li>
           <li class="timeline-item" [class.current]="stepTwoUnlocked">
             <span class="timeline-dot" aria-hidden="true"></span>
             <div>
-              <strong>2. Isi Data Diri &amp; Dokumen Bersensor</strong>
-              <p class="tiny muted" style="margin:.15rem 0 0">Sensor NIK &amp; tanda tangan serta bubuhkan watermark permanen.</p>
+              <strong>2. Unggah Foto Identitas</strong>
+              <p class="tiny muted" style="margin:.15rem 0 0">Sistem otomatis menerapkan grayscale, sensor NIK &amp; TTD, serta watermark pengurus.</p>
             </div>
           </li>
           <li class="timeline-item">
             <span class="timeline-dot" aria-hidden="true"></span>
             <div>
               <strong>3. Pemeriksaan Pengurus</strong>
-              <p class="tiny muted" style="margin:.15rem 0 0">Pengurus memeriksa data dan dokumen melalui panel verifikasi.</p>
+              <p class="tiny muted" style="margin:.15rem 0 0">Pengurus memeriksa kesesuaian nama dan foto wajah melalui panel verifikasi.</p>
             </div>
           </li>
           <li class="timeline-item">
             <span class="timeline-dot" aria-hidden="true"></span>
             <div>
               <strong>4. Akun Aktif</strong>
-              <p class="tiny muted" style="margin:.15rem 0 0">Setelah disetujui, Anda dapat langsung meminjam dan menayangkan barang.</p>
+              <p class="tiny muted" style="margin:.15rem 0 0">Setelah disetujui, Anda dapat meminjam alat dan menayangkan inventaris.</p>
             </div>
           </li>
         </ol>
       </div>
 
       <div class="well">
-        <p class="small strong" style="margin:0">Keamanan Data Organisasi</p>
-        <p class="small muted" style="margin:.3rem 0 0">
-          Dokumen verifikasi hanya dapat dilihat oleh pengurus organisasi bersangkutan. Gunakan fitur sensor NIK &amp; watermark untuk melindungi privasi Anda sesuai UU PDP.
+        <div style="display:flex;align-items:center;gap:0.45rem;margin-bottom:0.4rem">
+          <app-icon name="shield-check" [size]="18" />
+          <p class="small strong" style="margin:0">Kepatuhan Privasi Dokumen (UU PDP)</p>
+        </div>
+        <p class="small muted" style="margin:0;line-height:1.45">
+          Foto KTP/KTA yang Anda unggah disensor secara otomatis pada bagian nomor identitas (NIK) dan tanda tangan sebelum disimpan. Watermark forensik memastikan dokumen tidak dapat disalahgunakan di luar kepentingan verifikasi organisasi SARGA.
         </p>
       </div>
     </div>

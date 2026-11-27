@@ -51,8 +51,8 @@ export interface OtpSubmitPayload {
         <form (ngSubmit)="onSubmit()" novalidate>
           <div class="modal-body">
             <div class="alert alert-info otp-info-box">
-              <strong>Kode demo</strong>
-              <p>Masukkan enam angka apa pun. Pada sistem nyata, kode dikirim ke WhatsApp terdaftar.</p>
+              <strong>Verifikasi WhatsApp</strong>
+              <p>Masukkan 6 digit kode OTP resmi yang dikirimkan ke nomor WhatsApp terdaftar.</p>
             </div>
 
             <div
@@ -173,7 +173,7 @@ export class OtpModalComponent implements OnChanges, OnDestroy {
 
   get serverMessageTitle(): string {
     if (this.serverMessageKind === 'error') return 'Verifikasi gagal';
-    if (this.serverMessageKind === 'warning') return 'Fitur segera hadir';
+    if (this.serverMessageKind === 'warning') return 'Pemberitahuan';
     return 'Informasi OTP';
   }
 

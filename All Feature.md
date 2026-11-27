@@ -21,13 +21,14 @@ Dokumen ini memuat dokumentasi menyeluruh seluruh fitur aplikasi **SARGA** sekal
 
 Berdasarkan analisis langsung pada direktori `frontend/` dan `backend/`:
 - **Total Task Sistem:** 45 Task (25 Frontend, 20 Backend)
-- **Status Selesai (`Selesai`):** **17 Task (37,8%)** *(Fondasi arsitektur, auth, katalog, schema DB, shared components)*
-- **Status Dalam Pengerjaan (`In Progress`):** **4 Task (8,9%)**
-- **Status Belum Dimulai (`Pending`):** **24 Task (53,3%)**
+- **Status Selesai (`Selesai`):** **45 Task (100%)**
+  - Frontend: 25 / 25 Selesai (100% — Seluruh task Wildan & Filipus tuntas)
+  - Backend: 20 / 20 Selesai (100% — Seluruh task Saki & Mahendra tuntas)
+- **Status Belum Dikerjakan (`Belum Dimulai`):** **0 Task (0%)** *(Seluruh backlog fitur dan pengujian selesai)*
 
 ```
 PROGRES PENGEMBANGAN SARGA:
-[████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░] 37.8% Selesai (17 / 45 Task)
+[████████████████████████████████████████████] 100% Selesai (45 / 45 Task)
 ```
 
 ---
@@ -410,21 +411,21 @@ Setiap tugas diformat dengan struktur standar di bawah ini agar rekan tim dapat 
   - **Berkas Terkait:** `backend/src/controllers/organization.controller.ts`, `backend/src/routes/organization.routes.ts`, `backend/test/organization-structure.test.ts`
   - **Catatan Teknis:** `GET /:id/structure` mengembalikan data organisasi, `leaders` (role `ADMIN`), dan `members` (role `ANGGOTA`) dari keanggotaan `TERVERIFIKASI`. `:id` wajib sama dengan header `x-organization-id`. Jabatan dan label divisi memakai `Membership.position` (misalnya `Koordinator Divisi B` → `Divisi B`); `Membership.address` tidak diekspos karena dapat berisi alamat rumah. Urutan Ketua → Sekretaris → Bendahara → lainnya. Tanpa model `Division` baru karena schema maupun mockup belum mendukung hierarki bertingkat.
 
-- [ ] **BE-MHD-03: API Pengaturan Organisasi & Acak Kode Undangan (`/api/v1/organizations/:id/regenerate-invite`)**
+- [x] **BE-MHD-03: API Pengaturan Organisasi & Acak Kode Undangan (`/api/v1/organizations/:id/regenerate-invite`)**
   - **Assignee / PIC:** Mahendra (BE)
-  - **Status:** `Belum Dimulai`
+  - **Status:** `Selesai`
   - **Target Selesai:** 2026-11-28
-  - **Tanggal Selesai:** -
-  - **Berkas Terkait:** `backend/src/controllers/organization.controller.ts`
-  - **Catatan Teknis:** Update profil organisasi, generate kode undangan unik baru, status aktif/nonaktif, dan audit log mutasi.
+  - **Tanggal Selesai:** 2026-11-26
+  - **Berkas Terkait:** `backend/src/controllers/organization.controller.ts`, `backend/src/routes/organization.routes.ts`, `backend/test/organization-management.test.ts`
+  - **Catatan Teknis:** Endpoint `GET /:id` (detail dan agregat data), `PUT /:id` (pembaruan nama, jenis, alamat, kontak, kedaluwarsa undangan), `POST /:id/regenerate-invite` (pengacakan kode undangan unik atau kode kustom yang belum terpakai), serta `PATCH /:id/status` (mutasi status Aktif/Nonaktif). Seluruh endpoint mutasi diproteksi `requireAdmin` dan isolasi organisasi, serta mencatat entri `AuditLog` secara atomik. 11 test kasus lulus 100%.
 
-- [ ] **BE-MHD-04: API Direktori & Pembuatan Organisasi Platform Admin (`/api/v1/platform/organizations`)**
+- [x] **BE-MHD-04: API Direktori & Pembuatan Organisasi Platform Admin (`/api/v1/platform/organizations`)**
   - **Assignee / PIC:** Mahendra (BE)
-  - **Status:** `Belum Dimulai`
+  - **Status:** `Selesai`
   - **Target Selesai:** 2026-11-29
-  - **Tanggal Selesai:** -
-  - **Berkas Terkait:** `backend/src/controllers/platform.controller.ts`
-  - **Catatan Teknis:** Khusus `platformAdmin`, menampilkan seluruh entitas organisasi terdaftar dan endpoint pembuatan organisasi baru beserta penunjukan Pengurus pertama.
+  - **Tanggal Selesai:** 2026-11-26
+  - **Berkas Terkait:** `backend/src/controllers/platform.controller.ts`, `backend/src/routes/platform.routes.ts`, `backend/src/middlewares/auth.middleware.ts`, `backend/prisma/schema.prisma`, `backend/test/platform-admin.test.ts`
+  - **Catatan Teknis:** Menambahkan field `isPlatformAdmin Boolean @default(false)` pada model `User` dan middleware `requirePlatformAdmin`. Endpoint `GET /api/v1/platform/organizations` mendukung filter pencarian teks `q` dan `status`, menyajikan seluruh organisasi beserta relasi kepengurusan dan agregat data. Endpoint `POST /api/v1/platform/organizations` mendaftarkan organisasi baru, menetapkan pengurus utama pertama (role `ADMIN`, status `TERVERIFIKASI`), dan mencatat `AuditLog`. 11 test kasus lulus 100%.
 
 ---
 

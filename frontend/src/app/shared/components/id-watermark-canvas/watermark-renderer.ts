@@ -6,14 +6,17 @@ export interface NormalizedRect {
   w: number;
   h: number;
   mode: RedactionMode;
+  label?: string;
 }
 
 export interface WatermarkStampConfig {
   organizationName: string;
   picName: string;
   picContact: string;
+  picPosition?: string;
   fingerprint: string;
-  watermarkEnabled: boolean;
+  watermarkEnabled?: boolean;
+  applyGrayscale?: boolean;
 }
 
 export function formatWibTimestamp(date = new Date()): string {
@@ -27,56 +30,78 @@ export function generateDocumentFingerprint(): string {
   return `SRG-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Date.now().toString(36).slice(-4).toUpperCase()}`;
 }
 
+/** Standar zona sensor otomatis bawaan untuk dokumen identitas (KTP / KTA) */
+export function getDefaultIdRedactions(): NormalizedRect[] {
+  return [
+    {
+      x: 0.16,
+      y: 0.13,
+      w: 0.68,
+      h: 0.13,
+      mode: 'solid',
+      label: 'DISENSOR (NO. IDENTITAS / NIK)'
+    },
+    {
+      x: 0.58,
+      y: 0.64,
+      w: 0.38,
+      h: 0.20,
+      mode: 'solid',
+      label: 'DISENSOR (TANDA TANGAN / PRIVASI)'
+    }
+  ];
+}
+
+export function applyGrayscaleFilter(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  try {
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const d = imgData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      // Luminance formula for natural identity document black & white
+      const gray = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+      d[i] = gray;
+      d[i + 1] = gray;
+      d[i + 2] = gray;
+    }
+    ctx.putImageData(imgData, 0, 0);
+  } catch (e) {
+    // Fallback if canvas is tainted (cross-origin)
+    ctx.save();
+    ctx.globalCompositeOperation = 'color';
+    ctx.fillStyle = '#808080';
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+  }
+}
+
 export function paintRedactionRect(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
-  rect: NormalizedRect,
-  isDraft: boolean
+  rect: NormalizedRect
 ): void {
   const rx = Math.round(rect.x * w);
   const ry = Math.round(rect.y * h);
-  const rw = Math.max(8, Math.round(rect.w * w));
-  const rh = Math.max(8, Math.round(rect.h * h));
+  const rw = Math.max(12, Math.round(rect.w * w));
+  const rh = Math.max(12, Math.round(rect.h * h));
 
-  if (rect.mode === 'solid') {
-    ctx.fillStyle = '#111111';
-    ctx.fillRect(rx, ry, rw, rh);
-    if (rw >= 52 && rh >= 18) {
-      ctx.fillStyle = '#e2e8f0';
-      ctx.font = `700 ${Math.max(9, Math.min(13, Math.floor(rh * 0.45)))}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('DISENSOR', rx + rw / 2, ry + rh / 2, rw - 8);
-    }
-  } else {
-    const pixelSize = Math.max(8, Math.round(Math.min(rw, rh) / 4));
-    const cols = Math.max(1, Math.ceil(rw / pixelSize));
-    const rows = Math.max(1, Math.ceil(rh / pixelSize));
-    const sample = document.createElement('canvas');
-    sample.width = cols;
-    sample.height = rows;
-    const sctx = sample.getContext('2d');
-    if (sctx) {
-      sctx.imageSmoothingEnabled = false;
-      sctx.drawImage(ctx.canvas, rx, ry, rw, rh, 0, 0, cols, rows);
-      ctx.save();
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(sample, 0, 0, cols, rows, rx, ry, rw, rh);
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.25)';
-      ctx.fillRect(rx, ry, rw, rh);
-      ctx.restore();
-    }
-  }
+  ctx.save();
+  ctx.fillStyle = '#111111';
+  ctx.fillRect(rx, ry, rw, rh);
 
-  if (isDraft) {
-    ctx.save();
-    ctx.strokeStyle = '#0f766e';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 4]);
-    ctx.strokeRect(rx, ry, rw, rh);
-    ctx.restore();
-  }
+  // Border putih halus untuk memisahkan area sensor
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(rx, ry, rw, rh);
+
+  // Label sensor teks
+  const text = rect.label || 'DISENSOR';
+  ctx.fillStyle = '#f8fafc';
+  ctx.font = `700 ${Math.max(10, Math.min(14, Math.floor(rh * 0.42)))}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, rx + rw / 2, ry + rh / 2, rw - 12);
+  ctx.restore();
 }
 
 export function paintForensicWatermark(
@@ -88,6 +113,7 @@ export function paintForensicWatermark(
   const timestamp = formatWibTimestamp();
   const banner = `HANYA UNTUK VERIFIKASI KEANGGOTAAN SARGA ${config.organizationName.toUpperCase()}`;
 
+  // Watermark diagonal berulang
   ctx.save();
   ctx.translate(w / 2, h / 2);
   ctx.rotate(-Math.PI / 7);
@@ -96,42 +122,51 @@ export function paintForensicWatermark(
 
   const diag = Math.hypot(w, h);
   const stepY = Math.max(76, Math.round(h / 5));
-  const fontSize = Math.max(13, Math.round(w / 48));
+  const fontSize = Math.max(13, Math.round(w / 44));
 
   for (let y = -diag / 2; y <= diag / 2; y += stepY) {
     ctx.font = `700 ${fontSize}px sans-serif`;
-    ctx.fillStyle = 'rgba(15, 118, 110, 0.28)';
+    ctx.fillStyle = 'rgba(15, 118, 110, 0.32)';
     ctx.fillText(banner, 0, y);
 
-    ctx.font = `600 ${Math.max(11, fontSize - 2)}px monospace`;
-    ctx.fillStyle = 'rgba(17, 17, 17, 0.24)';
-    ctx.fillText(`PJ: ${config.picName} (${config.picContact}) · ${timestamp}`, 0, y + fontSize + 5);
+    ctx.font = `700 ${Math.max(11, fontSize - 2)}px monospace`;
+    ctx.fillStyle = 'rgba(17, 17, 17, 0.28)';
+    ctx.fillText(`PJ: ${config.picName} (${config.picContact}) · ${timestamp}`, 0, y + fontSize + 6);
   }
   ctx.restore();
 
-  const boxHeight = Math.max(78, Math.round(h * 0.21));
-  const padX = Math.max(14, Math.round(w * 0.025));
+  // Kotak data resmi penanggung jawab di bagian bawah
+  const boxHeight = Math.max(84, Math.round(h * 0.23));
+  const padX = Math.max(16, Math.round(w * 0.03));
   const boxY = h - boxHeight;
 
   ctx.save();
-  ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
   ctx.fillRect(0, boxY, w, boxHeight);
 
+  // Garis atas teal
+  ctx.fillStyle = '#0f766e';
+  ctx.fillRect(0, boxY, w, 3);
+
   ctx.fillStyle = '#5eead4';
-  ctx.font = `700 ${Math.max(11, Math.round(w / 62))}px monospace`;
+  ctx.font = `700 ${Math.max(12, Math.round(w / 58))}px monospace`;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'top';
 
-  const lineGap = Math.max(15, Math.round((boxHeight - 16) / 4));
+  const lineGap = Math.max(16, Math.round((boxHeight - 18) / 4));
   const startY = boxY + 10;
   ctx.fillText(banner, padX, startY, w - padX * 2);
 
-  ctx.fillStyle = '#f8fafc';
-  ctx.font = `600 ${Math.max(10, Math.round(w / 68))}px monospace`;
-  ctx.fillText(`PENANGGUNG JAWAB : ${config.picName}`, padX, startY + lineGap, w - padX * 2);
-  ctx.fillText(`KONTAK RESMI     : ${config.picContact}`, padX, startY + lineGap * 2, w - padX * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `600 ${Math.max(11, Math.round(w / 64))}px monospace`;
+  const posText = config.picPosition ? ` (${config.picPosition})` : '';
+  ctx.fillText(`PENANGGUNG JAWAB : ${config.picName}${posText}`, padX, startY + lineGap, w - padX * 2);
+  ctx.fillText(`KONTAK RESMI WA  : ${config.picContact}`, padX, startY + lineGap * 2, w - padX * 2);
+
+  ctx.fillStyle = '#cbd5e1';
+  ctx.font = `500 ${Math.max(10, Math.round(w / 68))}px monospace`;
   ctx.fillText(
-    `TANGGAL PENGAJUAN: ${timestamp} | ID: ${config.fingerprint}`,
+    `TANGGAL PENGAJUAN: ${timestamp} | KODE VERIFIKASI: ${config.fingerprint}`,
     padX,
     startY + lineGap * 3,
     w - padX * 2
@@ -143,21 +178,20 @@ export function renderWatermarkedDocument(
   canvas: HTMLCanvasElement,
   img: HTMLImageElement,
   rects: NormalizedRect[],
-  draft: NormalizedRect | null,
   config: WatermarkStampConfig
 ): void {
   const rawW = img.naturalWidth || 960;
   const rawH = img.naturalHeight || 600;
   const scale = rawW > 1024 ? 1024 / rawW : rawW < 640 ? 800 / rawW : 1;
-  const w = Math.max(400, Math.round(rawW * scale));
-  const h = Math.max(250, Math.round(rawH * scale));
+  const w = Math.max(480, Math.round(rawW * scale));
+  const h = Math.max(300, Math.round(rawH * scale));
 
   if (canvas.width !== w || canvas.height !== h) {
     canvas.width = w;
     canvas.height = h;
   }
 
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) return;
 
   ctx.clearRect(0, 0, w, h);
@@ -165,13 +199,18 @@ export function renderWatermarkedDocument(
   ctx.fillRect(0, 0, w, h);
   ctx.drawImage(img, 0, 0, w, h);
 
+  // 1. Ubah ke Grayscale untuk dokumen identitas
+  if (config.applyGrayscale !== false) {
+    applyGrayscaleFilter(ctx, w, h);
+  }
+
+  // 2. Gambar area sensor default bawaan
   for (const rect of rects) {
-    paintRedactionRect(ctx, w, h, rect, false);
+    paintRedactionRect(ctx, w, h, rect);
   }
-  if (draft && draft.w > 0 && draft.h > 0) {
-    paintRedactionRect(ctx, w, h, draft, true);
-  }
-  if (config.watermarkEnabled) {
+
+  // 3. Sematkan watermark forensik
+  if (config.watermarkEnabled !== false) {
     paintForensicWatermark(ctx, w, h, config);
   }
 }

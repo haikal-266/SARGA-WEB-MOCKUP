@@ -1,152 +1,94 @@
-<section class="watermark-tool" aria-label="Editor sensor dan watermark dokumen identitas">
-  <div class="tool-header">
-    <div>
-      <p class="strong small">Perlindungan Dokumen Identitas (Sensor & Watermark)</p>
-      <p class="tiny muted">
-        Tutupi area sensitif (NIK kecuali 4 digit terakhir & tanda tangan) sebelum dikirim ke pengurus.
-      </p>
+<div class="watermark-box" aria-label="Editor sensor dokumen identitas otomatis">
+  <!-- Status 1: Dropzone Upload jika belum memilih gambar -->
+  <div *ngIf="!imageLoaded" class="upload-dropzone" (click)="fileInput.click()">
+    <input
+      #fileInput
+      type="file"
+      class="sr-only"
+      accept="image/jpeg,image/png,image/webp"
+      (change)="onFileSelected($event)"
+    />
+    <div class="dropzone-inner">
+      <div class="icon-circle">
+        <app-icon name="upload" [size]="28" />
+      </div>
+      <div class="dropzone-text">
+        <p class="dropzone-title">Pilih atau Seret Foto {{ documentType }}</p>
+        <p class="dropzone-desc">Format berkas JPEG, PNG, atau WebP (Maksimal 5 MB)</p>
+      </div>
+      <button type="button" class="btn-select-file">
+        <app-icon name="image" [size]="16" />
+        <span>Pilih Berkas Foto</span>
+      </button>
+
+      <div class="protection-pill">
+        <app-icon name="shield-check" [size]="15" />
+        <span>Sensor NIK, tanda tangan &amp; grayscale otomatis diterapkan saat diunggah</span>
+      </div>
     </div>
-    <span class="tag-in" *ngIf="imageLoaded">
-      {{ watermarkEnabled ? 'Watermark Aktif' : 'Watermark Mati' }}
-    </span>
   </div>
 
-  <div class="source-controls">
-    <div class="field" style="margin:0;flex:1 1 200px">
-      <label class="label" for="id-doc-type">Jenis dokumen</label>
-      <select
-        id="id-doc-type"
-        class="form-input"
-        [(ngModel)]="documentType"
-        (ngModelChange)="onMetadataChange()"
-      >
-        <option value="KTP">KTP (Kartu Tanda Penduduk)</option>
-        <option value="KTA">KTA (Kartu Tanda Anggota)</option>
-        <option value="SIM / Identitas Resmi">SIM / Identitas Resmi Lainnya</option>
-      </select>
-    </div>
+  <p class="alert-error-box" *ngIf="errorMessage" role="alert">
+    <app-icon name="alert-circle" [size]="16" />
+    <span>{{ errorMessage }}</span>
+  </p>
 
-    <div class="field" style="margin:0;flex:1 1 240px">
-      <label class="label" for="id-doc-file">Unggah foto identitas (JPEG/PNG/WebP)</label>
+  <!-- Status 2: Pratinjau Dokumen Otomatis Terlindungi -->
+  <div *ngIf="imageLoaded" class="preview-card">
+    <div class="preview-header">
+      <div class="status-badge-group">
+        <span class="badge-protected">
+          <app-icon name="shield-check" [size]="16" />
+          <span>Sensor &amp; Watermark Aktif</span>
+        </span>
+        <span class="badge-gray">Otomatis Grayscale</span>
+      </div>
+
+      <button type="button" class="btn-change-photo" (click)="fileInput.click()">
+        <app-icon name="refresh" [size]="14" />
+        <span>Ganti Foto</span>
+      </button>
       <input
-        id="id-doc-file"
+        #fileInput
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/svg+xml"
-        class="form-input file-input"
+        class="sr-only"
+        accept="image/jpeg,image/png,image/webp"
         (change)="onFileSelected($event)"
       />
     </div>
-  </div>
 
-  <div class="sample-row" *ngIf="!imageLoaded">
-    <span class="tiny muted">Atau gunakan dokumen contoh demo:</span>
-    <button type="button" class="btn-pill" (click)="loadImageUrl('/img/sample-ktp.svg', 'KTP_Demo_Sarga.svg')">
-      Gunakan Contoh KTP Demo
-    </button>
-    <button
-      type="button"
-      class="btn-pill"
-      (click)="loadImageUrl('/img/sample-kartu-anggota.svg', 'KTA_Demo_Sarga.svg')"
-    >
-      Gunakan Contoh KTA Demo
-    </button>
-  </div>
-
-  <p class="alert-inline-error" *ngIf="errorMessage" role="alert">{{ errorMessage }}</p>
-
-  <div class="editor-body" *ngIf="imageLoaded">
-    <div class="canvas-toolbar" role="toolbar" aria-label="Alat sensor dan watermark">
-      <div class="mode-group">
-        <button
-          type="button"
-          class="chip"
-          [class.chip-active]="redactionMode === 'solid'"
-          (click)="redactionMode = 'solid'"
-        >
-          Kotak Hitam (NIK/TTD)
-        </button>
-        <button
-          type="button"
-          class="chip"
-          [class.chip-active]="redactionMode === 'blur'"
-          (click)="redactionMode = 'blur'"
-        >
-          Sensor Blur
-        </button>
+    <!-- Info Penanggung Jawab Tertinggi Resmi -->
+    <div class="pic-officer-banner">
+      <div class="pic-item">
+        <span class="pic-kicker">Penanggung Jawab Tertinggi</span>
+        <span class="pic-val">
+          <app-icon name="user" [size]="13" />
+          <strong>{{ effectivePicName }}</strong> ({{ effectivePicPosition }})
+        </span>
       </div>
-
-      <div class="action-group">
-        <button type="button" class="btn-pill" (click)="applyPresetNikRedaction()">
-          + Sensor Area NIK
-        </button>
-        <button type="button" class="btn-pill" (click)="applyPresetSignatureRedaction()">
-          + Sensor Tanda Tangan
-        </button>
-        <button
-          type="button"
-          class="btn-pill"
-          [disabled]="redactions.length === 0"
-          (click)="undoLastRedaction()"
-        >
-          Urungkan ({{ redactions.length }})
-        </button>
-        <button
-          type="button"
-          class="btn-pill"
-          [disabled]="redactions.length === 0"
-          (click)="clearRedactions()"
-        >
-          Reset Sensor
-        </button>
+      <div class="pic-item">
+        <span class="pic-kicker">Kontak Resmi Organisasi</span>
+        <span class="pic-val">
+          <app-icon name="phone" [size]="13" />
+          <span>{{ effectivePicContact }}</span>
+        </span>
+      </div>
+      <div class="pic-item">
+        <span class="pic-kicker">ID Keamanan Dokumen</span>
+        <span class="pic-val mono">{{ fingerprint }}</span>
       </div>
     </div>
 
-    <label class="watermark-toggle">
-      <input
-        type="checkbox"
-        [(ngModel)]="watermarkEnabled"
-        (ngModelChange)="redrawAndEmit()"
-      />
+    <!-- Canvas Preview (Hasil Dokumen Bersensor) -->
+    <div class="canvas-viewport">
+      <canvas #editorCanvas class="editor-canvas"></canvas>
+    </div>
+
+    <div class="compliance-note">
+      <app-icon name="info" [size]="15" />
       <span>
-        Sematkan watermark forensik permanen melintang pada piksel gambar (wajib untuk privasi)
+        Nomor identitas (NIK) dan tanda tangan telah ditutup demi keamanan data pribadi (UU PDP). Nama dan foto wajah tetap dipertahankan agar pengurus dapat memvalidasi keaslian anggota.
       </span>
-    </label>
-
-    <div class="canvas-frame">
-      <canvas
-        #editorCanvas
-        class="editor-canvas"
-        (pointerdown)="onPointerDown($event)"
-        (pointermove)="onPointerMove($event)"
-        (pointerup)="onPointerUp($event)"
-        (pointercancel)="onPointerUp($event)"
-      ></canvas>
-    </div>
-
-    <p class="tiny muted" style="margin:0">
-      Seret langsung di atas foto untuk menyensor bagian sensitif, atau gunakan tombol pintasan
-      <strong>+ Sensor Area NIK</strong> / <strong>+ Sensor Tanda Tangan</strong>.
-    </p>
-
-    <div class="well checklist-box">
-      <p class="tiny strong" style="margin:0">Panduan Sensor Aman:</p>
-      <ul class="tiny muted guide-list">
-        <li>Sensor 12 digit awal NIK dengan kotak hitam/blur (biarkan 4 digit akhir terlihat bila perlu).</li>
-        <li>Tutup tanda tangan basah dan nomor seri kartu dengan kotak sensor.</li>
-        <li>Biarkan <strong>Nama Lengkap</strong> dan <strong>Foto Wajah</strong> tetap terbaca untuk verifikasi pengurus.</li>
-      </ul>
-      <p class="tiny mono watermark-meta">
-        Stempel: {{ previewStampHeader }} · PJ: {{ effectivePicName }} ({{ effectivePicContact }}) · ID: {{ fingerprint }}
-      </p>
-    </div>
-
-    <div class="export-row">
-      <button type="button" class="btn-primary btn-sm" (click)="redrawAndEmit(true)">
-        Konfirmasi Dokumen Siap Kirim
-      </button>
-      <button type="button" class="btn-secondary btn-sm" (click)="resetAll()">
-        Ganti Foto
-      </button>
     </div>
   </div>
-</section>
+</div>

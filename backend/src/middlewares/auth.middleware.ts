@@ -7,6 +7,7 @@ export interface AuthRequest extends Request {
     id: string;
     waNumber: string;
     fullName: string;
+    isPlatformAdmin?: boolean;
   };
   membership?: {
     orgId: string;
@@ -37,7 +38,7 @@ export const authenticateToken = async (
 
     const user = await prisma.user.findUnique({
       where: { id: payload.id },
-      select: { id: true, waNumber: true, fullName: true }
+      select: { id: true, waNumber: true, fullName: true, isPlatformAdmin: true }
     });
 
     if (!user) {
@@ -92,6 +93,17 @@ export const requireActiveMember = (req: AuthRequest, res: Response, next: NextF
     res.status(403).json({
       success: false,
       message: 'Akses ditolak: keanggotaan Anda belum diverifikasi oleh pengurus.'
+    });
+    return;
+  }
+  next();
+};
+
+export const requirePlatformAdmin = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  if (!req.user || !req.user.isPlatformAdmin) {
+    res.status(403).json({
+      success: false,
+      message: 'Akses ditolak: hanya admin platform yang memiliki izin.'
     });
     return;
   }

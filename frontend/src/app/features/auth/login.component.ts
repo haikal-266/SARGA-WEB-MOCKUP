@@ -82,16 +82,6 @@ import { ToastService } from '../../shared/toast/toast.service';
           Sudah mendaftar?
           <a routerLink="/status-akun" class="link">Lihat status akun</a>.
         </p>
-
-        <div class="demo-hints">
-          <p class="hint-title">Akun Uji Coba Demo:</p>
-          <button type="button" class="hint-account" (click)="fillDemo('081234567890', 'Admin123!')">
-            👑 Pengurus: 081234567890 (Admin123!)
-          </button>
-          <button type="button" class="hint-account" (click)="fillDemo('081299998888', 'Anggota123!')">
-            👤 Anggota: 081299998888 (Anggota123!)
-          </button>
-        </div>
       </div>
     </div>
 
@@ -110,14 +100,8 @@ import { ToastService } from '../../shared/toast/toast.service';
         </div>
         <div class="modal-body">
           <p class="small">
-            Pada sistem nyata, tautan pengaturan ulang dikirim ke nomor WhatsApp terdaftar atau diperiksa pengurus organisasi.
+            Untuk menjaga keamanan akun komunitas, silakan hubungi pengurus organisasi Anda guna memverifikasi identitas dan melakukan pengaturan ulang kata sandi.
           </p>
-          <div class="well" style="margin-top:.9rem">
-            <p class="small strong" style="margin:0">Untuk akun demo seed</p>
-            <p class="small muted" style="margin:.25rem 0 0">
-              Akun pengurus memakai <span class="mono">Admin123!</span> dan akun anggota memakai <span class="mono">Anggota123!</span>.
-            </p>
-          </div>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn-secondary" (click)="closeForgotModal()">Tutup</button>
@@ -236,33 +220,6 @@ import { ToastService } from '../../shared/toast/toast.service';
       color: var(--color-accent);
       text-decoration: underline;
     }
-    .demo-hints {
-      margin-top: 1.5rem;
-      padding-top: 1.1rem;
-      border-top: 1px dashed var(--color-rule);
-      font-size: 0.82rem;
-    }
-    .hint-title {
-      color: var(--color-muted);
-      font-weight: 600;
-      margin: 0 0 0.5rem;
-    }
-    .hint-account {
-      display: block;
-      width: 100%;
-      text-align: left;
-      min-height: 44px;
-      padding: 0.45rem 0.75rem;
-      border: 1px solid var(--color-rule);
-      background: var(--color-paper-2);
-      border-radius: 8px;
-      margin-bottom: 0.4rem;
-      color: var(--color-ink-2);
-      font-size: 0.82rem;
-    }
-    .hint-account:hover {
-      background: var(--color-paper-3);
-    }
   `]
 })
 export class LoginComponent {
@@ -307,11 +264,6 @@ export class LoginComponent {
         this.errorMessage = err.error?.message || err.error?.error || 'Gagal masuk. Periksa nomor WhatsApp dan kata sandi.';
       }
     });
-  }
-
-  fillDemo(wa: string, pass: string): void {
-    this.waNumber = wa;
-    this.password = pass;
   }
 
   openForgotModal(event: Event): void {
