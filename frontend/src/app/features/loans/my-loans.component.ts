@@ -30,7 +30,7 @@ const LOAN_TABS: Array<{ key: LoanFilterTab; label: string }> = [
     <div class="page page-mid">
       <header class="page-head split">
         <div>
-          <p class="kicker">Peminjam · UC-PJ-04</p>
+          <p class="kicker">Peminjam</p>
           <h1>Pinjaman saya</h1>
           <p class="lede">
             Pantau pengajuan yang menunggu, pinjaman berjalan, dan riwayat yang sudah selesai.

@@ -31,7 +31,7 @@ interface ItemCreateForm {
     <div class="page page-mid">
       <div class="page-head split">
         <div>
-          <p class="kicker">Pemilik · UC-PM-01</p>
+          <p class="kicker">Pemilik</p>
           <h1>Daftar barang baru</h1>
           <p class="lede">Barang yang disimpan akan langsung tayang di katalog organisasi aktif dengan kode otomatis.</p>
         </div>

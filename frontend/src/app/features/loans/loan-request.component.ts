@@ -20,7 +20,7 @@ import { focusFirstInvalid } from '../../shared/utils/form-focus';
   template: `
     <div class="page page-mid">
       <header class="page-head">
-        <p class="kicker">Peminjam · UC-PJ-02</p>
+        <p class="kicker">Peminjam</p>
         <h1>Formulir pengajuan pinjaman</h1>
         <p class="lede">
           Isi tanggal dan keperluan. Pemilik atau pengurus akan menyetujui dari daftar permintaan.

@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/database';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import { resolveUploadedDocumentUrl } from '../middlewares/upload.middleware';
+import { HttpError } from '../utils/http-error';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -36,6 +38,13 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    const resolvedDocumentUrl = await resolveUploadedDocumentUrl(org.id, req.file, documentUrl);
+
+    const resolvedDocumentName =
+      (typeof documentName === 'string' && documentName.trim()) ||
+      req.file?.originalname ||
+      null;
+
     const passwordHash = await bcrypt.hash(password, 10);
 
     const user = await prisma.user.create({
@@ -52,9 +61,9 @@ export const register = async (req: Request, res: Response): Promise<void> => {
             position: 'Anggota',
             status: 'MENUNGGU_VERIFIKASI',
             documentType: documentType || 'KTP',
-            documentUrl: documentUrl || null,
-            documentName: documentName || null,
-            documentNote: documentNote || null,
+            documentUrl: resolvedDocumentUrl,
+            documentName: resolvedDocumentName,
+            documentNote: (typeof documentNote === 'string' && documentNote.trim()) ? documentNote.trim() : null,
             address: address || ''
           }
         }
@@ -85,6 +94,10 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       }
     });
   } catch (error: any) {
+    if (error instanceof HttpError) {
+      res.status(error.statusCode).json({ success: false, message: error.message });
+      return;
+    }
     res.status(500).json({ success: false, message: error.message });
   }
 };

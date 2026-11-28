@@ -12,6 +12,28 @@ import { Item } from '../../core/models';
   imports: [CommonModule, RouterLink],
   template: `
     <div class="page page-wide">
+      <div
+        *ngIf="activeMembership()?.status === 'DITOLAK'"
+        class="alert alert-danger"
+        role="alert"
+        style="margin-bottom:1.25rem"
+      >
+        <strong>Pendaftaran keanggotaan di {{ activeOrg()?.name || 'organisasi' }} ditolak</strong>
+        <p style="margin-top:0.25rem">
+          Alasan pengurus: {{ activeMembership()?.rejectionReason || 'Pengurus belum menuliskan alasan penolakan.' }}
+        </p>
+        <div class="btn-row" style="margin-top:0.75rem">
+          <a
+            class="btn-primary btn-sm"
+            routerLink="/gabung"
+            [queryParams]="{ daftarUlang: activeMembership()?.orgId }"
+          >
+            Daftar ulang
+          </a>
+          <a class="btn-secondary btn-sm" routerLink="/status-akun">Lihat status akun</a>
+        </div>
+      </div>
+
       <!-- Hero Banner Kontekstual -->
       <section class="hero" aria-labelledby="hero-heading">
         <div class="hero-content">

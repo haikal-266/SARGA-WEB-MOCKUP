@@ -21,6 +21,7 @@ export interface RegisterRequest {
   documentUrl?: string;
   documentName?: string;
   documentNote?: string;
+  documentFile?: Blob | File;
 }
 
 @Injectable({
@@ -84,7 +85,22 @@ export class AuthService {
   }
 
   register(data: RegisterRequest): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, data).pipe(
+    let payload: RegisterRequest | FormData = data;
+    if (data.documentFile) {
+      const formData = new FormData();
+      formData.append('waNumber', data.waNumber);
+      formData.append('password', data.password);
+      formData.append('fullName', data.fullName);
+      formData.append('inviteCode', data.inviteCode);
+      if (data.address) formData.append('address', data.address);
+      if (data.documentType) formData.append('documentType', data.documentType);
+      if (data.documentName) formData.append('documentName', data.documentName);
+      if (data.documentNote) formData.append('documentNote', data.documentNote);
+      formData.append('document', data.documentFile, data.documentName || 'dokumen_identitas.jpg');
+      payload = formData;
+    }
+
+    return this.http.post<AuthResponse>(`${this.apiUrl}/register`, payload).pipe(
       tap(response => {
         localStorage.setItem('sarga_token', response.token);
         this.setUser(response.user, response.user.memberships?.[0]?.orgId);
@@ -152,6 +168,22 @@ export class AuthService {
     this.saveLocalMemberships(user.id, membership);
     const updatedUser: User = { ...user, memberships: updatedMemberships };
     this.setUser(updatedUser);
+  }
+
+  replaceMembership(updated: Membership): void {
+    const user = this.currentUser();
+    if (!user) return;
+    const existing = user.memberships || [];
+    const replaced = existing.some(m => m.id === updated.id || m.orgId === updated.orgId)
+      ? existing.map(m => (m.id === updated.id || m.orgId === updated.orgId ? updated : m))
+      : [...existing, updated];
+    const updatedUser: User = {
+      ...user,
+      fullName: updated.user?.fullName || user.fullName,
+      name: updated.user?.fullName || user.name,
+      memberships: replaced
+    };
+    this.setUser(updatedUser, updated.orgId);
   }
 
   updateActiveMembershipStatus(status: VerificationStatus, rejectionReason?: string | null): void {

@@ -6,17 +6,46 @@
 </main>
 
 <footer class="app-footer">
-  <div class="container footer-content">
-    <p class="footer-copy">© 2026 SARGA - Sistem Inventaris & Peminjaman Komunitas Terpadu.</p>
-    <div class="footer-links">
-      <a routerLink="/beranda">Beranda</a>
-      <a routerLink="/katalog">Katalog</a>
-      <a routerLink="/pinjaman-saya">Pinjaman saya</a>
-      <a routerLink="/barang-saya">Barang saya</a>
-      <a routerLink="/barang/tambah">Tambah barang</a>
-      <a routerLink="/admin-monitoring">Panel pengurus</a>
-      <a routerLink="/gabung">Gabung organisasi</a>
-      <a routerLink="/status-akun">Status akun</a>
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <span class="footer-logo">SARGA</span>
+        <p class="footer-tagline">
+          Sistem inventaris dan peminjaman alat terpadu untuk komunitas dan organisasi.
+        </p>
+        <p *ngIf="activeOrgName" class="footer-org">
+          Organisasi aktif: <strong>{{ activeOrgName }}</strong>
+        </p>
+      </div>
+
+      <nav class="footer-columns" aria-label="Tautan footer">
+        <div class="footer-col">
+          <p class="footer-col-title">Jelajah</p>
+          <ul class="footer-list">
+            <li><a routerLink="/beranda">Beranda</a></li>
+            <li><a routerLink="/katalog">Katalog alat</a></li>
+            <li *ngIf="isVerified"><a routerLink="/pinjaman-saya">Pinjaman saya</a></li>
+            <li *ngIf="isVerified"><a routerLink="/barang-saya">Barang saya</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <p class="footer-col-title">Akun &amp; Peran</p>
+          <ul class="footer-list">
+            <li *ngIf="isVerified"><a routerLink="/barang/tambah">Tambah barang</a></li>
+            <li *ngIf="isLoggedIn"><a routerLink="/gabung">Gabung organisasi</a></li>
+            <li><a routerLink="/status-akun">Status akun</a></li>
+            <li *ngIf="isLoggedIn"><a routerLink="/profil">Profil saya</a></li>
+            <li *ngIf="isAdmin"><a routerLink="/admin-monitoring">Panel pengurus</a></li>
+            <li *ngIf="!isLoggedIn"><a routerLink="/auth/login">Masuk</a></li>
+            <li *ngIf="!isLoggedIn"><a routerLink="/auth/register">Daftar anggota</a></li>
+          </ul>
+        </div>
+      </nav>
+    </div>
+
+    <div class="footer-bottom">
+      <p class="footer-copy">© 2026 SARGA · Sirkulasi Inventaris Organisasi</p>
     </div>
   </div>
 </footer>

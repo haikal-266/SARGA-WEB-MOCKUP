@@ -210,10 +210,7 @@ export class RegisterComponent {
     this.loading = true;
     this.errorMessage = '';
 
-    const safeDocumentUrl =
-      this.form.documentUrl.startsWith('data:') && this.form.documentUrl.length > 65000
-        ? undefined
-        : this.form.documentUrl;
+    const docFile = this.preparedDocument?.file;
 
     this.authService
       .register({
@@ -225,14 +222,16 @@ export class RegisterComponent {
         documentType: this.form.documentType,
         documentName: this.form.documentName,
         documentNote: this.form.documentNote.trim() || undefined,
-        documentUrl: safeDocumentUrl
+        documentFile: docFile,
+        documentUrl: docFile ? undefined : this.form.documentUrl
       })
       .subscribe({
         next: response => {
+          const persistedUrl = response.user.memberships?.[0]?.documentUrl || this.form.documentUrl;
           this.membershipService.saveDocumentPreview(`wa:${waNumber}`, {
             documentType: this.form.documentType,
             documentName: this.form.documentName,
-            documentUrl: this.form.documentUrl,
+            documentUrl: persistedUrl,
             documentNote: this.form.documentNote.trim() || undefined,
             watermarkSummary: this.preparedDocument?.watermarkSummary,
             fingerprint: this.preparedDocument?.fingerprint,

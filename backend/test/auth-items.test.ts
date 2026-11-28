@@ -1,12 +1,24 @@
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 import request from 'supertest';
+import sharp from 'sharp';
 import app from '../src/app';
 import prisma from '../src/config/database';
 import { createMember, createOrg, resetDb } from './helpers';
 
 describe('Health, Auth (Invite PIC, Register, Login, Me, Password) & Items API', () => {
+  const uploadedOrgIds: string[] = [];
+
   beforeEach(async () => {
     await resetDb();
+  });
+
+  afterEach(() => {
+    for (const orgId of new Set(uploadedOrgIds)) {
+      fs.rmSync(path.resolve(process.cwd(), 'uploads', orgId), { recursive: true, force: true });
+    }
+    uploadedOrgIds.length = 0;
   });
 
   afterAll(async () => {
@@ -167,6 +179,70 @@ describe('Health, Auth (Invite PIC, Register, Login, Me, Password) & Items API',
         inviteCode: 'MATI2026'
       });
       expect(res.status).toBe(404);
+    });
+
+    it('POST /api/v1/auth/register menyimpan unggahan dokumen multipart dan base64 gambar nyata ke /uploads', async () => {
+      const org = await createOrg('Org Dokumen', 'DOK2026');
+      uploadedOrgIds.push(org.id);
+
+      const pngBuf = await sharp({
+        create: { width: 320, height: 200, channels: 3, background: '#1e293b' }
+      })
+        .png()
+        .toBuffer();
+
+      const multiRes = await request(app)
+        .post('/api/v1/auth/register')
+        .field('waNumber', '081233330001')
+        .field('password', 'Password123!')
+        .field('fullName', 'Anggota Multipart')
+        .field('address', 'Blok D1')
+        .field('inviteCode', 'DOK2026')
+        .field('documentType', 'KTP')
+        .field('documentName', 'ktp_asli_terwatermark.jpg')
+        .attach('document', pngBuf, { filename: 'ktp_asli_terwatermark.jpg', contentType: 'image/png' });
+
+      expect(multiRes.status).toBe(201);
+      const multiUrl = multiRes.body.user.memberships[0].documentUrl as string;
+      expect(multiUrl).toMatch(new RegExp(`^/uploads/${org.id}/.+\\.jpg$`));
+      expect(multiRes.body.user.memberships[0].documentName).toBe('ktp_asli_terwatermark.jpg');
+
+      const storedPath = path.resolve(process.cwd(), 'uploads', org.id, path.basename(multiUrl));
+      expect(fs.existsSync(storedPath)).toBe(true);
+
+      const fetchUploaded = await request(app).get(multiUrl);
+      expect(fetchUploaded.status).toBe(200);
+
+      const base64DataUrl = `data:image/png;base64,${pngBuf.toString('base64')}`;
+      const jsonRes = await request(app).post('/api/v1/auth/register').send({
+        waNumber: '081233330002',
+        password: 'Password123!',
+        fullName: 'Anggota Base64',
+        inviteCode: 'DOK2026',
+        documentType: 'KTP',
+        documentName: 'ktp_b64.jpg',
+        documentUrl: base64DataUrl
+      });
+
+      expect(jsonRes.status).toBe(201);
+      const jsonUrl = jsonRes.body.user.memberships[0].documentUrl as string;
+      expect(jsonUrl).toMatch(new RegExp(`^/uploads/${org.id}/.+\\.jpg$`));
+      expect(
+        fs.existsSync(path.resolve(process.cwd(), 'uploads', org.id, path.basename(jsonUrl)))
+      ).toBe(true);
+
+      const badDocRes = await request(app)
+        .post('/api/v1/auth/register')
+        .field('waNumber', '081233330003')
+        .field('password', 'Password123!')
+        .field('fullName', 'Anggota Rusak')
+        .field('inviteCode', 'DOK2026')
+        .attach('document', Buffer.from('bukan gambar valid'), {
+          filename: 'palsu.jpg',
+          contentType: 'image/jpeg'
+        });
+
+      expect(badDocRes.status).toBe(400);
     });
   });
 

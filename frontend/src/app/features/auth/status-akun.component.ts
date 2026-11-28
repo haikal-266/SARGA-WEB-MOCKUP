@@ -1,8 +1,8 @@
-import { Component, HostListener, OnDestroy, inject, computed } from '@angular/core';
+import { Component, HostListener, OnDestroy, inject, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
-import { ToastService } from '../../shared/toast/toast.service';
+import { MembershipService, resolveDocumentUrl } from '../../core/services/membership.service';
 import { VerificationStatus } from '../../core/models';
 
 @Component({
@@ -122,10 +122,10 @@ import { VerificationStatus } from '../../core/models';
               <a class="btn-secondary" routerLink="/barang/tambah">Tambah barang</a>
             </div>
 
-            <!-- Aksi Tombol untuk Status Ditolak: Ajukan Ulang -->
+            <!-- Aksi Tombol untuk Status Ditolak: Daftar Ulang -->
             <div *ngIf="isRejected()" class="btn-row">
               <button class="btn-primary" type="button" (click)="onResubmit()">
-                Ajukan ulang
+                Daftar ulang
               </button>
               <button class="btn-secondary" type="button" (click)="onLogout()">
                 Keluar dari akun
@@ -155,6 +155,7 @@ import { VerificationStatus } from '../../core/models';
             <p class="small muted">Dokumen identitas ini diperiksa oleh pengurus organisasi.</p>
             <div class="doc-submitted-flex">
               <div
+                *ngIf="documentImage() as imgSrc; else missingThumbDoc"
                 class="doc-thumb-preview"
                 role="button"
                 tabindex="0"
@@ -164,12 +165,17 @@ import { VerificationStatus } from '../../core/models';
                 aria-label="Buka pratinjau dokumen verifikasi"
               >
                 <img
-                  [src]="documentImage()"
+                  [src]="imgSrc"
                   [alt]="'Dokumen verifikasi ' + (currentUser()?.fullName || 'anggota')"
                   class="doc-thumb-img"
-                  (error)="handleDocImageError($event)"
+                  (error)="handleDocImageError()"
                 />
               </div>
+              <ng-template #missingThumbDoc>
+                <div class="doc-thumb-preview" style="display:flex;align-items:center;justify-content:center;padding:0.75rem;text-align:center">
+                  <span class="tiny muted">Foto dokumen tidak tersedia di server</span>
+                </div>
+              </ng-template>
               <div class="pending-card-content">
                 <p class="small">
                   <strong>Jenis Dokumen:</strong>
@@ -182,7 +188,7 @@ import { VerificationStatus } from '../../core/models';
                 <p *ngIf="activeMembership()?.documentNote" class="tiny muted doc-note">
                   {{ activeMembership()?.documentNote }}
                 </p>
-                <div class="doc-actions">
+                <div class="doc-actions" *ngIf="documentImage()">
                   <button class="btn-secondary btn-sm" type="button" (click)="openDocModal()">
                     Lihat Pratinjau Dokumen
                   </button>
@@ -250,11 +256,17 @@ import { VerificationStatus } from '../../core/models';
           <div class="modal-body">
             <div class="doc-preview-frame">
               <img
-                [src]="documentImage()"
+                *ngIf="documentImage() as imgSrc; else missingModalDoc"
+                [src]="imgSrc"
                 [alt]="'Dokumen lengkap ' + (currentUser()?.fullName || 'anggota')"
                 class="doc-preview-full"
-                (error)="handleDocImageError($event)"
+                (error)="handleDocImageError()"
               />
+              <ng-template #missingModalDoc>
+                <p class="small muted" style="padding:1rem;text-align:center">
+                  Foto dokumen tidak tersedia di server.
+                </p>
+              </ng-template>
             </div>
           </div>
           <div class="modal-actions">
@@ -408,13 +420,14 @@ import { VerificationStatus } from '../../core/models';
 })
 export class StatusAkunComponent implements OnDestroy {
   private readonly authService = inject(AuthService);
-  private readonly toastService = inject(ToastService);
+  private readonly membershipService = inject(MembershipService);
   private readonly router = inject(Router);
 
   currentUser = this.authService.currentUser;
   activeMembership = this.authService.activeMembership;
 
   showDocModal = false;
+  private failedDocUrl = signal<string | null>(null);
 
   activeOrg = computed(() => {
     return this.activeMembership()?.organization || null;
@@ -466,13 +479,16 @@ export class StatusAkunComponent implements OnDestroy {
     return !!(m?.documentUrl || m?.documentName || m?.documentType);
   });
 
+  private rawDocumentImage = computed(() => {
+    const m = this.activeMembership();
+    const cached = this.membershipService.getDocumentPreview(m?.id, this.currentUser()?.waNumber);
+    return resolveDocumentUrl(m?.documentUrl || cached?.documentUrl);
+  });
+
   documentImage = computed(() => {
-    const url = this.activeMembership()?.documentUrl;
-    if (url && url.startsWith('http')) return url;
-    if (url && url.startsWith('assets/')) return '/' + url.slice('assets/'.length);
-    if (url && url.startsWith('img/')) return '/' + url;
-    if (url) return url;
-    return '/img/sample-ktp.svg';
+    const url = this.rawDocumentImage();
+    if (!url || url === this.failedDocUrl()) return null;
+    return url;
   });
 
   otherMemberships = computed(() => {
@@ -494,11 +510,8 @@ export class StatusAkunComponent implements OnDestroy {
   }
 
   onResubmit(): void {
-    this.authService.updateActiveMembershipStatus('MENUNGGU_VERIFIKASI', null);
-    this.toastService.show(
-      'Pengajuan ulang terkirim: Pengurus akan memeriksa kembali pendaftaran Anda.',
-      'success'
-    );
+    const orgId = this.activeMembership()?.orgId;
+    this.router.navigate(['/gabung'], orgId ? { queryParams: { daftarUlang: orgId } } : undefined);
   }
 
   onLogout(): void {
@@ -522,6 +535,7 @@ export class StatusAkunComponent implements OnDestroy {
   }
 
   openDocModal(): void {
+    this.failedDocUrl.set(null);
     this.showDocModal = true;
     document.body.classList.add('modal-open');
   }
@@ -531,10 +545,8 @@ export class StatusAkunComponent implements OnDestroy {
     document.body.classList.remove('modal-open');
   }
 
-  handleDocImageError(event: Event): void {
-    const img = event.target as HTMLImageElement;
-    if (img && !img.src.includes('sample-ktp.svg')) {
-      img.src = '/img/sample-ktp.svg';
-    }
+  handleDocImageError(): void {
+    const url = this.rawDocumentImage();
+    if (url) this.failedDocUrl.set(url);
   }
 }

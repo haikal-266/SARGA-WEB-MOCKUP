@@ -7,7 +7,7 @@ import { catchError } from 'rxjs/operators';
 import { LoanTransaction, Membership } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { LoanService } from '../../core/services/loan.service';
-import { MembershipService } from '../../core/services/membership.service';
+import { MembershipService, resolveDocumentUrl } from '../../core/services/membership.service';
 import { AlertComponent } from '../../shared/alert/alert.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../shared/toast/toast.service';
@@ -44,6 +44,7 @@ export class VerificationComponent implements OnDestroy {
 
   pendingMembers: Membership[] = [];
   pendingLoans: LoanTransaction[] = [];
+  failedDocIds = new Set<string>();
   loading = false;
   busy = false;
   errorMessage = '';
@@ -99,6 +100,7 @@ export class VerificationComponent implements OnDestroy {
     this.queueSub?.unsubscribe();
     this.loading = true;
     this.errorMessage = '';
+    this.failedDocIds.clear();
 
     this.queueSub = forkJoin({
       members: this.membershipService.getPendingMemberships().pipe(catchError(() => of(null))),
@@ -113,9 +115,10 @@ export class VerificationComponent implements OnDestroy {
     });
   }
 
-  memberDocImg(m: Membership): string {
+  memberDocImg(m: Membership): string | null {
+    if (this.failedDocIds.has(m.id)) return null;
     const cached = this.membershipService.getDocumentPreview(m.id, m.user?.waNumber);
-    return m.documentUrl || cached?.documentUrl || '/img/sample-ktp.svg';
+    return resolveDocumentUrl(m.documentUrl || cached?.documentUrl);
   }
 
   memberDocType(m: Membership): string {
@@ -250,11 +253,8 @@ export class VerificationComponent implements OnDestroy {
     }
   }
 
-  onImgError(event: Event): void {
-    const img = event.target;
-    if (img instanceof HTMLImageElement && !img.src.endsWith('/img/sample-ktp.svg')) {
-      img.src = '/img/sample-ktp.svg';
-    }
+  onImgError(membershipId: string): void {
+    this.failedDocIds.add(membershipId);
   }
 
   ngOnDestroy(): void {

@@ -13,7 +13,7 @@ import {
   inject
 } from '@angular/core';
 import { Membership } from '../../core/models';
-import { MembershipService } from '../../core/services/membership.service';
+import { MembershipService, resolveDocumentUrl } from '../../core/services/membership.service';
 
 @Component({
   selector: 'app-member-doc-modal',
@@ -110,21 +110,30 @@ import { MembershipService } from '../../core/services/membership.service';
             <div class="doc-modal-preview">
               <div class="doc-preview-top">
                 <span class="strong small">Foto Dokumen Keanggotaan</span>
-                <a class="tiny link" [href]="docImage" target="_blank" rel="noopener noreferrer">
+                <a *ngIf="docImage" class="tiny link" [href]="docImage" target="_blank" rel="noopener noreferrer">
                   Buka Foto Asli ↗
                 </a>
               </div>
 
               <div class="doc-preview-frame">
                 <img
+                  *ngIf="docImage; else missingDocImg"
                   class="doc-preview-full"
                   [src]="docImage"
                   [alt]="'Dokumen verifikasi ' + applicantName"
-                  (error)="onImgError($event)"
+                  (error)="onImgError()"
                 />
+                <ng-template #missingDocImg>
+                  <div class="empty" style="margin:0;border:0;background:transparent">
+                    <p class="empty-title">Foto dokumen tidak tersedia</p>
+                    <p class="empty-body">
+                      Berkas foto tidak tersimpan di server atau gagal dimuat. Minta calon anggota mengirim ulang foto dokumen melalui WhatsApp sebelum menyetujui.
+                    </p>
+                  </div>
+                </ng-template>
               </div>
 
-              <p class="tiny muted" style="text-align:center;margin:.55rem 0 0">
+              <p *ngIf="docImage" class="tiny muted" style="text-align:center;margin:.55rem 0 0">
                 Foto KTP / Kartu Anggota yang dilampirkan sebagai bukti verifikasi.
               </p>
             </div>
@@ -174,8 +183,12 @@ export class MemberDocModalComponent implements OnChanges, OnDestroy {
   @ViewChild('closeBtn') private closeBtn?: ElementRef<HTMLButtonElement>;
 
   private returnFocusEl: HTMLElement | null = null;
+  private imageFailed = false;
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['membership'] || changes['open']) {
+      this.imageFailed = false;
+    }
     if (changes['open']) {
       document.body.classList.toggle('modal-open', this.open && !!this.membership);
       if (this.open) {
@@ -229,8 +242,9 @@ export class MemberDocModalComponent implements OnChanges, OnDestroy {
     return this.membership?.documentName || this.cachedDoc?.documentName || 'Dokumen_Keanggotaan.svg';
   }
 
-  get docImage(): string {
-    return this.membership?.documentUrl || this.cachedDoc?.documentUrl || '/img/sample-ktp.svg';
+  get docImage(): string | null {
+    if (this.imageFailed) return null;
+    return resolveDocumentUrl(this.membership?.documentUrl || this.cachedDoc?.documentUrl);
   }
 
   get docNote(): string {
@@ -279,10 +293,7 @@ export class MemberDocModalComponent implements OnChanges, OnDestroy {
     this.closed.emit();
   }
 
-  onImgError(event: Event): void {
-    const img = event.target;
-    if (img instanceof HTMLImageElement && !img.src.endsWith('/img/sample-ktp.svg')) {
-      img.src = '/img/sample-ktp.svg';
-    }
+  onImgError(): void {
+    this.imageFailed = true;
   }
 }

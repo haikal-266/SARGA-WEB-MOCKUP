@@ -1,8 +1,17 @@
 import { Router } from 'express';
-import { listPendingMembers, rejectMember, updateMember, verifyMember } from '../controllers/membership.controller';
+import {
+  listPendingMembers,
+  rejectMember,
+  resubmitMembership,
+  updateMember,
+  verifyMember
+} from '../controllers/membership.controller';
 import { authenticateToken, requireActiveMember, requireAdmin } from '../middlewares/auth.middleware';
+import { uploadOptionalDocument } from '../middlewares/upload.middleware';
 
 const router = Router();
+
+router.post('/:id/resubmit', authenticateToken, uploadOptionalDocument, resubmitMembership);
 
 router.use(authenticateToken, requireActiveMember, requireAdmin);
 

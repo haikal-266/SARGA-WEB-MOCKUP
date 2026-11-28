@@ -24,6 +24,20 @@ const upload = multer({
 });
 
 const singleUpload = upload.single('image');
+const singleDocumentUpload = upload.single('document');
+
+const forwardUploadError = (error: unknown, next: NextFunction): void => {
+  if (error instanceof HttpError) {
+    next(error);
+    return;
+  }
+  if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
+    next(new HttpError(400, 'Ukuran gambar maksimal 5 MB.'));
+    return;
+  }
+  const message = error instanceof Error ? error.message : 'Unggah gambar gagal.';
+  next(new HttpError(400, message || 'Unggah gambar gagal.'));
+};
 
 export const uploadImage: RequestHandler = (req, res, next) => {
   singleUpload(req, res, (error) => {
@@ -35,17 +49,73 @@ export const uploadImage: RequestHandler = (req, res, next) => {
       next();
       return;
     }
-
-    if (error instanceof HttpError) {
-      next(error);
-      return;
-    }
-    if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
-      next(new HttpError(400, 'Ukuran gambar maksimal 5 MB.'));
-      return;
-    }
-    next(new HttpError(400, error.message || 'Unggah gambar gagal.'));
+    forwardUploadError(error, next);
   });
+};
+
+/** Parses an optional multipart `document` image field while leaving JSON requests untouched. */
+export const uploadOptionalDocument: RequestHandler = (req, res, next) => {
+  singleDocumentUpload(req, res, (error) => {
+    if (!error) {
+      next();
+      return;
+    }
+    forwardUploadError(error, next);
+  });
+};
+
+const writeOrgUploadJpeg = async (
+  orgId: string,
+  buffer: Buffer
+): Promise<{ filePath: string; url: string; name: string }> => {
+  const name = `${randomUUID()}.jpg`;
+  const directory = path.resolve(process.cwd(), 'uploads', orgId);
+  await fs.promises.mkdir(directory, { recursive: true });
+  const filePath = path.join(directory, name);
+  await fs.promises.writeFile(filePath, buffer);
+  return { filePath, url: `/uploads/${orgId}/${name}`, name };
+};
+
+/** Validates and stores an uploaded identity document buffer as a clean JPEG under `/uploads/<orgId>/`. */
+export const saveDocumentBuffer = async (orgId: string, buffer: Buffer): Promise<string> => {
+  if (buffer.length > MAX_FILE_SIZE) {
+    throw new HttpError(400, 'Ukuran dokumen gambar maksimal 5 MB.');
+  }
+  try {
+    await sharp(buffer).metadata();
+  } catch {
+    throw new HttpError(400, 'Isi berkas dokumen bukan gambar yang valid.');
+  }
+  const processed = await sharp(buffer).rotate().jpeg({ quality: 88 }).toBuffer();
+  const saved = await writeOrgUploadJpeg(orgId, processed);
+  return saved.url;
+};
+
+const parseBase64Image = (value: string): Buffer | null => {
+  const match = /^data:image\/(?:jpeg|jpg|png|webp);base64,([\s\S]+)$/i.exec(value.trim());
+  if (!match) return null;
+  const cleaned = match[1].replace(/\s+/g, '');
+  return cleaned ? Buffer.from(cleaned, 'base64') : null;
+};
+
+/** Persists a multipart document file or valid base64 data URL under `/uploads/<orgId>/` and returns its URL. */
+export const resolveUploadedDocumentUrl = async (
+  orgId: string,
+  file?: Express.Multer.File,
+  rawDocumentUrl?: unknown
+): Promise<string | null> => {
+  if (file) {
+    return saveDocumentBuffer(orgId, file.buffer);
+  }
+  if (typeof rawDocumentUrl === 'string' && rawDocumentUrl.trim()) {
+    const trimmed = rawDocumentUrl.trim();
+    const base64Buf = parseBase64Image(trimmed);
+    if (base64Buf && base64Buf.length >= 64) {
+      return saveDocumentBuffer(orgId, base64Buf);
+    }
+    return trimmed;
+  }
+  return null;
 };
 
 const escapeXml = (value: string): string =>
@@ -148,16 +218,12 @@ export const watermarkImage = async (
       .jpeg({ quality: 85 })
       .toBuffer();
 
-    const name = `${randomUUID()}.jpg`;
-    const directory = path.resolve(process.cwd(), 'uploads', orgId);
-    await fs.promises.mkdir(directory, { recursive: true });
-    const filePath = path.join(directory, name);
-    await fs.promises.writeFile(filePath, processed);
+    const saved = await writeOrgUploadJpeg(orgId, processed);
 
     req.processedImage = {
-      path: filePath,
-      url: `/uploads/${orgId}/${name}`,
-      name,
+      path: saved.filePath,
+      url: saved.url,
+      name: saved.name,
       watermarkText
     };
     next();

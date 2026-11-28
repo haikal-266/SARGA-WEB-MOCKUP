@@ -25,7 +25,7 @@
   <ng-container *ngIf="!waitingAuth && authService.isAdmin()">
     <div class="page-head">
       <div>
-        <p class="kicker">Pengurus · UC-AD-01</p>
+        <p class="kicker">Pengurus</p>
         <h1>Verifikasi anggota dan pinjaman</h1>
         <p class="lede">
           Periksa pendaftar baru dan pengajuan pinjaman yang menunggu keputusan.
@@ -65,12 +65,21 @@
                 (click)="openDocModal(m)"
               >
                 <img
-                  [src]="memberDocImg(m)"
+                  *ngIf="memberDocImg(m) as imgSrc; else noThumbDoc"
+                  [src]="imgSrc"
                   [alt]="'Dokumen ' + (m.user?.fullName || 'calon anggota')"
                   class="doc-thumb-img"
-                  (error)="onImgError($event)"
+                  (error)="onImgError(m.id)"
                 />
-                <span class="doc-thumb-tag">Lihat Dokumen</span>
+                <ng-template #noThumbDoc>
+                  <div
+                    class="tiny muted"
+                    style="display:flex;align-items:center;justify-content:center;height:100%;padding:0.5rem 0.5rem 1.4rem;text-align:center"
+                  >
+                    Foto belum tersedia
+                  </div>
+                </ng-template>
+                <span class="doc-thumb-tag">{{ memberDocImg(m) ? 'Lihat Dokumen' : 'Lihat Detail' }}</span>
               </button>
 
               <div class="pending-card-content">

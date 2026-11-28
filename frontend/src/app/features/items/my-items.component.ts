@@ -20,7 +20,7 @@ import { ToastService } from '../../shared/toast/toast.service';
     <div class="page page-mid">
       <header class="page-head split">
         <div>
-          <p class="kicker">Pemilik · UC-PM-01</p>
+          <p class="kicker">Pemilik</p>
           <h1>Barang saya dan permintaan masuk</h1>
           <p class="lede">
             Setujui permintaan pinjaman dan konfirmasi pengembalian tanpa mencari pesan lama.
@@ -142,7 +142,7 @@ import { ToastService } from '../../shared/toast/toast.service';
                     [disabled]="busyLoanId === loan.id"
                     (click)="returnLoan(loan)"
                   >
-                    {{ busyLoanId === loan.id ? 'Memproses...' : 'Konfirmasi kembali' }}
+                    {{ busyLoanId === loan.id ? 'Memproses...' : 'Konfirmasi Pengembalian' }}
                   </button>
                 </div>
               </article>
@@ -409,10 +409,10 @@ export class MyItemsComponent implements OnInit, OnDestroy {
                 item: entry.item,
                 borrower: loan.borrower
                   ? {
-                      id: loan.borrower.id,
-                      fullName: loan.borrower.fullName,
-                      waNumber: loan.borrower.waNumber || ''
-                    }
+                    id: loan.borrower.id,
+                    fullName: loan.borrower.fullName,
+                    waNumber: loan.borrower.waNumber || ''
+                  }
                   : undefined,
                 owner: entry.item.owner
               });

@@ -60,6 +60,31 @@ export interface LocalManualMemberInput {
   position: string;
 }
 
+export interface ResubmitMembershipInput {
+  fullName?: string;
+  address?: string;
+  documentType?: string;
+  documentName?: string;
+  documentNote?: string;
+  documentUrl?: string;
+  documentFile?: Blob | File;
+}
+
+/** Resolves relative `/uploads/...` or asset document paths into browser-loadable URLs. */
+export function resolveDocumentUrl(source?: string | null): string | null {
+  if (!source) return null;
+  const trimmed = source.trim();
+  if (!trimmed) return null;
+  if (/^(https?:|data:|blob:)/i.test(trimmed)) return trimmed;
+  const apiOrigin = environment.apiUrl.replace(/\/api\/v1\/?$/, '');
+  if (trimmed.startsWith('/uploads/')) return `${apiOrigin}${trimmed}`;
+  if (trimmed.startsWith('uploads/')) return `${apiOrigin}/${trimmed}`;
+  if (trimmed.startsWith('/assets/img/')) return `/${trimmed.slice('/assets/'.length)}`;
+  if (trimmed.startsWith('assets/')) return `/${trimmed.slice('assets/'.length)}`;
+  if (trimmed.startsWith('img/')) return `/${trimmed}`;
+  return trimmed;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -86,6 +111,27 @@ export class MembershipService {
       membershipId,
       rejectionReason
     });
+  }
+
+  resubmitMembership(
+    membershipId: string,
+    data: ResubmitMembershipInput
+  ): Observable<MembershipActionResponse> {
+    const formData = new FormData();
+    if (data.fullName) formData.append('fullName', data.fullName);
+    if (data.address) formData.append('address', data.address);
+    if (data.documentType) formData.append('documentType', data.documentType);
+    if (data.documentName) formData.append('documentName', data.documentName);
+    if (data.documentNote !== undefined) formData.append('documentNote', data.documentNote);
+    if (data.documentFile) {
+      formData.append('document', data.documentFile, data.documentName || 'dokumen_identitas.jpg');
+    } else if (data.documentUrl) {
+      formData.append('documentUrl', data.documentUrl);
+    }
+    return this.http.post<MembershipActionResponse>(
+      `${this.membershipsUrl}/${membershipId}/resubmit`,
+      formData
+    );
   }
 
   updateMembershipRolePosition(

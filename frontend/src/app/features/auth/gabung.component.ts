@@ -5,13 +5,16 @@ import {
   OnDestroy,
   ViewChild,
   computed,
+  effect,
   inject
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { MembershipService, resolveDocumentUrl } from '../../core/services/membership.service';
 import {
   Membership,
   Organization,
@@ -97,17 +100,29 @@ import { focusFirstInvalid } from '../../shared/utils/form-focus';
             <h2 class="panel-heading">Organisasi Anda</h2>
 
             <div *ngIf="memberships().length > 0; else emptyOrgs" class="list">
-              <div *ngFor="let m of memberships()" class="list-item row">
-                <div>
-                  <span class="cell-main">
-                    {{ m.organization?.name || 'Organisasi terdaftar' }}
-                  </span>
-                  <span class="cell-sub">
-                    {{ m.organization?.type || 'Organisasi' }} · {{ roleLabel(m.role) }} · sejak {{ formatJoinedDate(m.joinedAt) }}
-                  </span>
-                </div>
-                <div class="actions">
+              <article *ngFor="let m of memberships()" class="list-item">
+                <div class="org-card-head">
+                  <div class="org-card-title">
+                    <span class="cell-main">
+                      {{ m.organization?.name || 'Organisasi terdaftar' }}
+                    </span>
+                    <span class="cell-sub">
+                      {{ m.organization?.type || 'Organisasi' }} · {{ roleLabel(m.role) }} · sejak {{ formatJoinedDate(m.joinedAt) }}
+                    </span>
+                  </div>
                   <span [class]="statusTagClass(m.status)">{{ statusLabel(m.status) }}</span>
+                </div>
+
+                <dl *ngIf="m.status === 'DITOLAK'" class="definition-list org-reject-meta">
+                  <div>
+                    <dt>Alasan ditolak</dt>
+                    <dd class="org-reject-reason">
+                      {{ m.rejectionReason || 'Pengurus belum menuliskan alasan penolakan.' }}
+                    </dd>
+                  </div>
+                </dl>
+
+                <div class="actions org-card-actions">
                   <button
                     *ngIf="m.status === 'TERVERIFIKASI'"
                     class="btn-secondary btn-sm"
@@ -124,8 +139,16 @@ import { focusFirstInvalid } from '../../shared/utils/form-focus';
                   >
                     Lihat Dokumen
                   </button>
+                  <button
+                    *ngIf="m.status === 'DITOLAK'"
+                    class="btn-primary btn-sm"
+                    type="button"
+                    (click)="openResubmitModal(m)"
+                  >
+                    Daftar ulang
+                  </button>
                 </div>
-              </div>
+              </article>
             </div>
 
             <ng-template #emptyOrgs>
@@ -161,10 +184,13 @@ import { focusFirstInvalid } from '../../shared/utils/form-focus';
         (keydown)="onDialogKeydown($event, joinDialogEl)"
       >
         <div class="modal-head">
-          <h2 id="join-modal-title">Formulir Calon Anggota: {{ targetOrg.name }}</h2>
+          <h2 id="join-modal-title">
+            {{ resubmittingMembership ? 'Daftar Ulang Anggota: ' + targetOrg.name : 'Formulir Calon Anggota: ' + targetOrg.name }}
+          </h2>
           <button
             class="modal-close"
             type="button"
+            [disabled]="submittingJoin"
             (click)="closeJoinModal()"
             aria-label="Tutup dialog"
           >
@@ -174,11 +200,25 @@ import { focusFirstInvalid } from '../../shared/utils/form-focus';
 
         <form (ngSubmit)="onSubmitJoinModal()" novalidate>
           <div class="modal-body">
-            <div class="alert alert-info modal-info-alert">
-              <strong>Pendaftaran ke {{ targetOrg.name }}</strong>
+            <div *ngIf="resubmittingMembership; else newJoinAlert" class="alert alert-danger modal-info-alert">
+              <strong>Pendaftaran sebelumnya ditolak</strong>
               <p>
-                Pengurus ({{ targetPic.name }} · {{ targetPic.contact }}) akan memeriksa data diri dan dokumen Anda. Tidak perlu kata sandi baru.
+                Alasan pengurus: {{ resubmittingMembership.rejectionReason || 'Pengurus belum menuliskan alasan penolakan.' }}.
+                Perbaiki data atau unggah foto dokumen identitas untuk diperiksa kembali.
               </p>
+            </div>
+            <ng-template #newJoinAlert>
+              <div class="alert alert-info modal-info-alert">
+                <strong>Pendaftaran ke {{ targetOrg.name }}</strong>
+                <p>
+                  Pengurus ({{ targetPic.name }} · {{ targetPic.contact }}) akan memeriksa data diri dan dokumen Anda. Tidak perlu kata sandi baru.
+                </p>
+              </div>
+            </ng-template>
+
+            <div *ngIf="joinSubmitError" class="alert alert-danger modal-info-alert" role="alert">
+              <strong>Gagal mengirim pendaftaran</strong>
+              <p>{{ joinSubmitError }}</p>
             </div>
 
             <div class="form-grid two" style="margin-top:0">
@@ -211,6 +251,7 @@ import { focusFirstInvalid } from '../../shared/utils/form-focus';
                   type="tel"
                   inputmode="tel"
                   autocomplete="tel"
+                  [readonly]="!!resubmittingMembership"
                   [(ngModel)]="joinForm.waNumber"
                   (ngModelChange)="joinErrors.waNumber = ''"
                   [attr.aria-invalid]="joinErrors.waNumber ? 'true' : null"
@@ -287,9 +328,9 @@ import { focusFirstInvalid } from '../../shared/utils/form-focus';
           </div>
 
           <div class="modal-actions">
-            <button class="btn-secondary" type="button" (click)="closeJoinModal()">Batal</button>
-            <button class="btn-primary form-submit-inline" type="submit">
-              Kirim Formulir &amp; Dokumen
+            <button class="btn-secondary" type="button" [disabled]="submittingJoin" (click)="closeJoinModal()">Batal</button>
+            <button class="btn-primary form-submit-inline" type="submit" [disabled]="submittingJoin">
+              {{ submittingJoin ? 'Mengirim...' : (resubmittingMembership ? 'Kirim Pendaftaran Ulang' : 'Kirim Formulir & Dokumen') }}
             </button>
           </div>
         </form>
@@ -367,11 +408,17 @@ import { focusFirstInvalid } from '../../shared/utils/form-focus';
               </div>
               <div class="doc-preview-frame">
                 <img
+                  *ngIf="viewedDocImg(viewedMembership) as imgSrc; else missingViewedDoc"
                   class="doc-preview-full"
-                  [src]="resolveDocImg(viewedMembership.documentUrl)"
+                  [src]="imgSrc"
                   [alt]="'Dokumen ' + (currentUser()?.fullName || 'anggota')"
-                  (error)="handleImageFallback($event)"
+                  (error)="viewedDocFailed = true"
                 />
+                <ng-template #missingViewedDoc>
+                  <p class="small muted" style="padding:1rem;text-align:center">
+                    Foto dokumen tidak tersedia di server.
+                  </p>
+                </ng-template>
               </div>
             </div>
           </div>
@@ -426,11 +473,36 @@ import { focusFirstInvalid } from '../../shared/utils/form-focus';
     .doc-file-break {
       overflow-wrap: anywhere;
     }
+    .org-card-head {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.5rem 0.75rem;
+    }
+    .org-card-title {
+      flex: 1 1 12rem;
+      min-width: 0;
+    }
+    .org-reject-meta {
+      padding-top: 0.65rem;
+      border-top: 1px solid var(--color-rule-2);
+    }
+    .org-reject-reason {
+      color: var(--color-rose-ink);
+      font-weight: 500;
+      overflow-wrap: anywhere;
+    }
+    .org-card-actions {
+      padding-top: 0.1rem;
+    }
   `]
 })
 export class GabungComponent implements OnDestroy {
   private readonly authService = inject(AuthService);
+  private readonly membershipService = inject(MembershipService);
   private readonly toastService = inject(ToastService);
+  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly hostEl = inject(ElementRef<HTMLElement>);
 
@@ -453,10 +525,15 @@ export class GabungComponent implements OnDestroy {
   checkingInvite = false;
 
   showJoinModal = false;
+  submittingJoin = false;
+  joinSubmitError = '';
+  resubmittingMembership: Membership | null = null;
   targetOrg: Organization | null = null;
   targetPic = { name: 'Pengurus Organisasi', contact: 'Kontak Resmi Organisasi', position: 'Pengurus Utama' };
   initialJoinDocUrl = '';
   viewedMembership: Membership | null = null;
+  private joinPreparedDoc: WatermarkedDocumentOutput | null = null;
+  private handledAutoResubmitOrgId = '';
 
   joinForm = {
     fullName: '',
@@ -476,6 +553,22 @@ export class GabungComponent implements OnDestroy {
   };
 
   private lastFocused: HTMLElement | null = null;
+  private queryParams = toSignal(this.route.queryParamMap);
+  viewedDocFailed = false;
+
+  constructor() {
+    effect(() => {
+      const targetOrgId = this.queryParams()?.get('daftarUlang') || '';
+      const list = this.memberships();
+      if (!targetOrgId || targetOrgId === this.handledAutoResubmitOrgId || !list.length) return;
+      const match = list.find(m => m.orgId === targetOrgId && m.status === 'DITOLAK');
+      if (match) {
+        this.handledAutoResubmitOrgId = targetOrgId;
+        this.openResubmitModal(match);
+        this.router.navigate([], { relativeTo: this.route, queryParams: {}, replaceUrl: true });
+      }
+    });
+  }
 
   ngOnDestroy(): void {
     document.body.classList.remove('modal-open');
@@ -483,7 +576,7 @@ export class GabungComponent implements OnDestroy {
 
   @HostListener('document:keydown.escape')
   onEscapeKey(): void {
-    if (this.showJoinModal) {
+    if (this.showJoinModal && !this.submittingJoin) {
       this.closeJoinModal();
     } else if (this.viewedMembership) {
       this.closeDocPreview();
@@ -521,6 +614,20 @@ export class GabungComponent implements OnDestroy {
         };
 
         if (this.authService.hasMembershipInOrg(org)) {
+          const rejected = this.memberships().find(
+            m =>
+              m.status === 'DITOLAK' &&
+              (m.orgId === org.id || m.organization?.inviteCode?.toUpperCase() === code)
+          );
+          if (rejected) {
+            this.targetPic = {
+              name: res.pic?.name || 'Pengurus Organisasi',
+              contact: res.pic?.contact || org.contact || 'Kontak Resmi',
+              position: res.pic?.position || 'Ketua / Pengurus Utama'
+            };
+            this.openResubmitModal(rejected, org);
+            return;
+          }
           this.inviteError = 'Anda sudah terdaftar di organisasi ini.';
           focusFirstInvalid(this.hostEl.nativeElement);
           this.inviteInput?.nativeElement.focus();
@@ -548,6 +655,9 @@ export class GabungComponent implements OnDestroy {
     this.lastFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
     const existingDoc = user.memberships?.find(m => m.documentUrl && !m.documentUrl.includes('sample-'));
+    this.resubmittingMembership = null;
+    this.joinSubmitError = '';
+    this.joinPreparedDoc = null;
     this.targetOrg = org;
     this.initialJoinDocUrl = existingDoc?.documentUrl ? this.resolveDocImg(existingDoc.documentUrl) : '';
     this.joinErrors = { fullName: '', waNumber: '', address: '', document: '' };
@@ -566,20 +676,91 @@ export class GabungComponent implements OnDestroy {
     setTimeout(() => this.joinNameInput?.nativeElement.focus(), 0);
   }
 
+  openResubmitModal(membership: Membership, resolvedOrg?: Organization): void {
+    const user = this.currentUser();
+    if (!user) return;
+    this.lastFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    const org: Organization = resolvedOrg ||
+      membership.organization || {
+        id: membership.orgId,
+        name: 'Organisasi terdaftar',
+        type: 'Organisasi',
+        address: '',
+        contact: '',
+        inviteCode: '',
+        status: 'Aktif'
+      };
+
+    this.resubmittingMembership = membership;
+    this.joinSubmitError = '';
+    this.joinPreparedDoc = null;
+    this.targetOrg = org;
+    this.targetPic = {
+      name: 'Pengurus Organisasi',
+      contact: org.contact || 'Kontak Resmi Organisasi',
+      position: 'Pengurus Utama'
+    };
+
+    const inviteCode = org.inviteCode?.trim();
+    if (inviteCode && !resolvedOrg) {
+      this.authService.checkInviteCode(inviteCode).subscribe({
+        next: res => {
+          this.targetPic = {
+            name: res.pic?.name || 'Pengurus Organisasi',
+            contact: res.pic?.contact || org.contact || 'Kontak Resmi Organisasi',
+            position: res.pic?.position || 'Ketua / Pengurus Utama'
+          };
+        },
+        error: () => {
+          // Keep organization contact fallback when lookup fails.
+        }
+      });
+    }
+
+    const usableExistingUrl =
+      membership.documentUrl && !membership.documentUrl.includes('sample-')
+        ? resolveDocumentUrl(membership.documentUrl) || ''
+        : '';
+
+    this.initialJoinDocUrl = usableExistingUrl;
+    this.joinErrors = { fullName: '', waNumber: '', address: '', document: '' };
+    this.joinForm = {
+      fullName: user.fullName || user.name || '',
+      waNumber: user.waNumber || '',
+      address: membership.address || user.address || '',
+      documentType: membership.documentType || 'KTP',
+      documentUrl: usableExistingUrl,
+      documentName: usableExistingUrl ? membership.documentName || '' : '',
+      documentNote: membership.documentNote || ''
+    };
+
+    this.showJoinModal = true;
+    document.body.classList.add('modal-open');
+    setTimeout(() => this.joinNameInput?.nativeElement.focus(), 0);
+  }
+
   closeJoinModal(): void {
+    if (this.submittingJoin) return;
     this.showJoinModal = false;
+    this.resubmittingMembership = null;
+    this.joinSubmitError = '';
+    this.joinPreparedDoc = null;
     this.targetOrg = null;
     this.restoreFocus();
   }
 
   onDocumentProcessed(doc: WatermarkedDocumentOutput): void {
     this.joinErrors.document = '';
+    this.joinSubmitError = '';
+    this.joinPreparedDoc = doc;
     this.joinForm.documentType = doc.documentType;
     this.joinForm.documentName = doc.fileName;
     this.joinForm.documentUrl = doc.dataUrl;
   }
 
   onDocumentCleared(): void {
+    this.joinPreparedDoc = null;
     this.joinForm.documentUrl = '';
     this.joinForm.documentName = '';
   }
@@ -587,9 +768,10 @@ export class GabungComponent implements OnDestroy {
   onSubmitJoinModal(): void {
     const user = this.currentUser();
     const org = this.targetOrg;
-    if (!user || !org) return;
+    if (!user || !org || this.submittingJoin) return;
 
     this.joinErrors = { fullName: '', waNumber: '', address: '', document: '' };
+    this.joinSubmitError = '';
 
     const fullName = this.joinForm.fullName.trim();
     const waDigits = this.joinForm.waNumber.replace(/\D/g, '');
@@ -597,7 +779,7 @@ export class GabungComponent implements OnDestroy {
 
     this.joinErrors = {
       fullName: fullName.length >= 3 ? '' : 'Isi nama lengkap minimal 3 karakter.',
-      waNumber: waDigits.length >= 9 ? '' : 'Nomor WhatsApp belum lengkap.',
+      waNumber: waDigits.length >= 9 || !!this.resubmittingMembership ? '' : 'Nomor WhatsApp belum lengkap.',
       address: address.length >= 3 ? '' : 'Isi alamat / divisi / unit kerja.',
       document: this.joinForm.documentUrl ? '' : 'Unggah foto dokumen identitas untuk verifikasi pengurus.'
     };
@@ -609,6 +791,49 @@ export class GabungComponent implements OnDestroy {
       this.joinErrors.document
     ) {
       focusFirstInvalid(this.hostEl.nativeElement);
+      return;
+    }
+
+    if (this.resubmittingMembership) {
+      const targetId = this.resubmittingMembership.id;
+      this.submittingJoin = true;
+      this.membershipService
+        .resubmitMembership(targetId, {
+          fullName,
+          address,
+          documentType: this.joinForm.documentType,
+          documentName: this.joinForm.documentName || 'Dokumen_Identitas_Terwatermark.jpg',
+          documentNote: this.joinForm.documentNote.trim(),
+          documentFile: this.joinPreparedDoc?.file,
+          documentUrl: this.joinPreparedDoc?.file ? undefined : this.joinForm.documentUrl
+        })
+        .subscribe({
+          next: res => {
+            this.submittingJoin = false;
+            this.authService.replaceMembership(res.membership);
+            const persistedUrl = res.membership.documentUrl || this.joinForm.documentUrl;
+            this.membershipService.saveDocumentPreview(res.membership.id, {
+              documentType: res.membership.documentType || this.joinForm.documentType,
+              documentName: res.membership.documentName || this.joinForm.documentName,
+              documentUrl: persistedUrl,
+              documentNote: res.membership.documentNote || undefined,
+              watermarkSummary: this.joinPreparedDoc?.watermarkSummary,
+              fingerprint: this.joinPreparedDoc?.fingerprint,
+              savedAt: new Date().toISOString()
+            });
+            this.resubmittingMembership = null;
+            this.closeJoinModal();
+            this.toastService.show(
+              res.message || `Pendaftaran ulang ke ${org.name} dikirim untuk verifikasi pengurus.`,
+              'success'
+            );
+          },
+          error: (err: HttpErrorResponse) => {
+            this.submittingJoin = false;
+            this.joinSubmitError =
+              err.error?.message || 'Pendaftaran ulang gagal dikirim. Periksa data dan dokumen Anda.';
+          }
+        });
       return;
     }
 
@@ -664,8 +889,15 @@ export class GabungComponent implements OnDestroy {
 
   openDocPreview(membership: Membership): void {
     this.lastFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    this.viewedDocFailed = false;
     this.viewedMembership = membership;
     document.body.classList.add('modal-open');
+  }
+
+  viewedDocImg(membership: Membership): string | null {
+    if (this.viewedDocFailed) return null;
+    const cached = this.membershipService.getDocumentPreview(membership.id, this.currentUser()?.waNumber);
+    return resolveDocumentUrl(membership.documentUrl || cached?.documentUrl);
   }
 
   closeDocPreview(): void {
@@ -729,17 +961,7 @@ export class GabungComponent implements OnDestroy {
   }
 
   resolveDocImg(url?: string): string {
-    if (!url) return '/img/sample-kartu-anggota.svg';
-    if (url.startsWith('assets/')) return '/' + url.slice('assets/'.length);
-    if (url.startsWith('img/')) return '/' + url;
-    return url;
-  }
-
-  handleImageFallback(event: Event): void {
-    const img = event.target as HTMLImageElement;
-    if (img && !img.src.includes('sample-kartu-anggota.svg')) {
-      img.src = '/img/sample-kartu-anggota.svg';
-    }
+    return resolveDocumentUrl(url) || '/img/sample-kartu-anggota.svg';
   }
 
   private restoreFocus(): void {

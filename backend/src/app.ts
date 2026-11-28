@@ -62,8 +62,8 @@ app.use(cors({
 app.options('*', cors());
 
 // Parsers
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health Check
 app.get('/api/health', (req: Request, res: Response) => {

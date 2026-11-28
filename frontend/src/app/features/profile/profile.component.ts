@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/services/auth.service';
+import { MembershipService, resolveDocumentUrl } from '../../core/services/membership.service';
 import { Membership } from '../../core/models';
 import { AlertComponent } from '../../shared/alert/alert.component';
 import { ToastService } from '../../shared/toast/toast.service';
@@ -105,7 +106,9 @@ import { ToastService } from '../../shared/toast/toast.service';
               <div>
                 <span class="person-name">{{ m.organization?.name || 'Organisasi terdaftar' }}</span>
                 <span class="person-sub">{{ roleLabel(m) }} · {{ m.position || 'Anggota' }}</span>
-                <span class="person-sub" *ngIf="m.status === 'DITOLAK' && m.rejectionReason">Alasan: {{ m.rejectionReason }}</span>
+                <span class="person-sub" *ngIf="m.status === 'DITOLAK'" style="color:var(--color-rose-ink)">
+                  Alasan ditolak: {{ m.rejectionReason || 'Pengurus belum menuliskan alasan penolakan.' }}
+                </span>
               </div>
               <div class="org-row-actions">
                 <span class="badge" [ngClass]="statusClass(m.status)">{{ statusLabel(m.status) }}</span>
@@ -115,6 +118,14 @@ import { ToastService } from '../../shared/toast/toast.service';
                   (click)="switchOrg(m)" [attr.aria-label]="'Pindah ke ' + (m.organization?.name || 'organisasi ini')">
                   Pindah ke sini
                 </button>
+                <a
+                  *ngIf="m.status === 'DITOLAK'"
+                  class="btn btn-primary btn-sm"
+                  routerLink="/gabung"
+                  [queryParams]="{ daftarUlang: m.orgId }"
+                >
+                  Daftar ulang
+                </a>
               </div>
             </div>
           </div>
@@ -133,8 +144,8 @@ import { ToastService } from '../../shared/toast/toast.service';
         <div class="modal-body">
           <ng-container *ngIf="active() as m">
             <p class="small muted" style="margin:0 0 .75rem">Dokumen yang Anda lampirkan sebagai acuan verifikasi pengurus.</p>
-            <div class="doc-frame" *ngIf="m.documentUrl; else noDoc">
-              <img [src]="m.documentUrl" [alt]="'Dokumen pendaftaran ' + (user()?.fullName || '')" />
+            <div class="doc-frame" *ngIf="docImageUrl(m) as imgUrl; else noDoc">
+              <img [src]="imgUrl" [alt]="'Dokumen pendaftaran ' + (user()?.fullName || '')" (error)="docImageFailed = true" />
             </div>
             <ng-template #noDoc>
               <div class="empty-state"><p class="empty-title">Dokumen belum tersedia</p>
@@ -152,6 +163,7 @@ import { ToastService } from '../../shared/toast/toast.service';
 })
 export class ProfileComponent {
   private readonly auth = inject(AuthService);
+  private readonly membershipService = inject(MembershipService);
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly http = inject(HttpClient);
@@ -159,6 +171,7 @@ export class ProfileComponent {
 
   readonly user = this.auth.currentUser;
   readonly active = this.auth.activeMembership;
+  docImageFailed = false;
 
   pwd = { current: '', next: '', confirm: '' };
   submitted = false;
@@ -229,7 +242,14 @@ export class ProfileComponent {
     this.toast.show(`Organisasi aktif: ${m.organization?.name || 'Organisasi terdaftar'}.`, 'success');
   }
 
+  docImageUrl(m: Membership): string | null {
+    if (this.docImageFailed) return null;
+    const cached = this.membershipService.getDocumentPreview(m.id, this.user()?.waNumber);
+    return resolveDocumentUrl(m.documentUrl || cached?.documentUrl);
+  }
+
   openMyDocModal(): void {
+    this.docImageFailed = false;
     const dialog = this.docDialog?.nativeElement;
     if (dialog && !dialog.open) dialog.showModal();
   }

@@ -1,5 +1,8 @@
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 import request from 'supertest';
+import sharp from 'sharp';
 import app from '../src/app';
 import prisma from '../src/config/database';
 import { createMember, createOrg, resetDb } from './helpers';
@@ -8,6 +11,14 @@ describe('BE-SKI-14: pusat verifikasi calon anggota', () => {
   let orgA: { id: string };
   let admin: { user: { id: string }; token: string };
   let member: { user: { id: string }; token: string };
+  const uploadedOrgIds: string[] = [];
+
+  afterEach(() => {
+    for (const orgId of new Set(uploadedOrgIds)) {
+      fs.rmSync(path.resolve(process.cwd(), 'uploads', orgId), { recursive: true, force: true });
+    }
+    uploadedOrgIds.length = 0;
+  });
 
   const auth = (token: string, orgId: string) => ({
     Authorization: `Bearer ${token}`,
@@ -164,5 +175,61 @@ describe('BE-SKI-14: pusat verifikasi calon anggota', () => {
     const audits = await prisma.auditLog.findMany({ where: { orgId: orgA.id }, orderBy: { createdAt: 'asc' } });
     expect(audits.map((a) => a.action)).toEqual(['Memverifikasi anggota', 'Menolak anggota']);
     expect(audits[0].actorId).toBe(admin.user.id);
+  });
+
+  it('pendaftar yang ditolak dapat mendaftar ulang dengan foto baru dan kembali menunggu verifikasi', async () => {
+    uploadedOrgIds.push(orgA.id);
+    const target = await createMember(orgA.id, {
+      waNumber: '081200000072',
+      fullName: 'Calon Ditolak',
+      status: 'MENUNGGU_VERIFIKASI'
+    });
+
+    await request(app)
+      .patch('/api/v1/memberships/reject')
+      .set(auth(admin.token, orgA.id))
+      .send({ membershipId: target.membership.id, rejectionReason: 'upload foto dlu' });
+
+    // Tanpa dokumen foto saat sebelumnya null harus ditolak 400
+    const missingDocRes = await request(app)
+      .post(`/api/v1/memberships/${target.membership.id}/resubmit`)
+      .set('Authorization', `Bearer ${target.token}`)
+      .field('address', 'Blok H2/18');
+    expect(missingDocRes.status).toBe(400);
+
+    // Anggota lain tidak bisa mendaftar ulang milik orang lain
+    const otherRes = await request(app)
+      .post(`/api/v1/memberships/${target.membership.id}/resubmit`)
+      .set('Authorization', `Bearer ${member.token}`)
+      .field('address', 'Blok Lain');
+    expect(otherRes.status).toBe(404);
+
+    // Daftar ulang dengan file foto nyata berhasil
+    const pngBuf = await sharp({
+      create: { width: 320, height: 200, channels: 3, background: '#0f172a' }
+    })
+      .png()
+      .toBuffer();
+
+    const resubmitRes = await request(app)
+      .post(`/api/v1/memberships/${target.membership.id}/resubmit`)
+      .set('Authorization', `Bearer ${target.token}`)
+      .field('fullName', 'Calon Ditolak Diperbaiki')
+      .field('address', 'Purcil Blok H2/18')
+      .field('documentType', 'KTP')
+      .field('documentName', 'ktp_baru.jpg')
+      .attach('document', pngBuf, { filename: 'ktp_baru.jpg', contentType: 'image/png' });
+
+    expect(resubmitRes.status).toBe(200);
+    expect(resubmitRes.body.success).toBe(true);
+    expect(resubmitRes.body.membership.status).toBe('MENUNGGU_VERIFIKASI');
+    expect(resubmitRes.body.membership.rejectionReason).toBeNull();
+    expect(resubmitRes.body.membership.documentUrl).toMatch(new RegExp(`^/uploads/${orgA.id}/.+\\.jpg$`));
+
+    const pendingRes = await request(app).get('/api/v1/memberships/pending').set(auth(admin.token, orgA.id));
+    expect(pendingRes.status).toBe(200);
+    expect(pendingRes.body.count).toBe(1);
+    expect(pendingRes.body.memberships[0].user.fullName).toBe('Calon Ditolak Diperbaiki');
+    expect(pendingRes.body.memberships[0].documentUrl).toBe(resubmitRes.body.membership.documentUrl);
   });
 });
