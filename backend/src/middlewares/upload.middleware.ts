@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { NextFunction, RequestHandler, Response } from 'express';
@@ -64,11 +64,74 @@ export const uploadOptionalDocument: RequestHandler = (req, res, next) => {
   });
 };
 
-const writeOrgUploadJpeg = async (
+const uploadToCloudinary = async (
+  orgId: string,
+  buffer: Buffer,
+  name: string
+): Promise<{ filePath: string; url: string; name: string }> => {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+  const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
+  const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
+  if (!cloudName || !apiKey || !apiSecret) {
+    throw new HttpError(500, 'Konfigurasi Cloudinary belum lengkap.');
+  }
+
+  const folder = `sarga/${orgId}`;
+  const publicId = name.replace(/\.jpg$/i, '');
+  const timestamp = Math.floor(Date.now() / 1000).toString();
+  const signature = createHash('sha1')
+    .update(`folder=${folder}&public_id=${publicId}&timestamp=${timestamp}${apiSecret}`)
+    .digest('hex');
+
+  const form = new FormData();
+  form.append('file', new Blob([new Uint8Array(buffer)], { type: 'image/jpeg' }), name);
+  form.append('api_key', apiKey);
+  form.append('timestamp', timestamp);
+  form.append('folder', folder);
+  form.append('public_id', publicId);
+  form.append('signature', signature);
+
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+    method: 'POST',
+    body: form
+  });
+  if (!response.ok) {
+    throw new HttpError(502, 'Gagal mengunggah gambar ke penyimpanan Cloudinary.');
+  }
+  const result = (await response.json()) as { secure_url?: string; public_id?: string };
+  if (!result.secure_url) {
+    throw new HttpError(502, 'Respons Cloudinary tidak menyertakan URL gambar.');
+  }
+  return { filePath: result.public_id || name, url: result.secure_url, name };
+};
+
+const storeProcessedJpeg = async (
   orgId: string,
   buffer: Buffer
 ): Promise<{ filePath: string; url: string; name: string }> => {
   const name = `${randomUUID()}.jpg`;
+  const hasCloudinary =
+    !!process.env.CLOUDINARY_CLOUD_NAME?.trim() &&
+    !!process.env.CLOUDINARY_API_KEY?.trim() &&
+    !!process.env.CLOUDINARY_API_SECRET?.trim();
+
+  if (hasCloudinary) {
+    return uploadToCloudinary(orgId, buffer, name);
+  }
+
+  // Vercel Serverless has an ephemeral filesystem; store a compact JPEG data URL in DB when Cloudinary is unset.
+  if (process.env.VERCEL === '1') {
+    const compact = await sharp(buffer)
+      .resize({ width: 960, withoutEnlargement: true })
+      .jpeg({ quality: 78 })
+      .toBuffer();
+    return {
+      filePath: name,
+      url: `data:image/jpeg;base64,${compact.toString('base64')}`,
+      name
+    };
+  }
+
   const directory = path.resolve(process.cwd(), 'uploads', orgId);
   await fs.promises.mkdir(directory, { recursive: true });
   const filePath = path.join(directory, name);
@@ -76,7 +139,7 @@ const writeOrgUploadJpeg = async (
   return { filePath, url: `/uploads/${orgId}/${name}`, name };
 };
 
-/** Validates and stores an uploaded identity document buffer as a clean JPEG under `/uploads/<orgId>/`. */
+/** Validates and stores an uploaded identity document buffer as a clean JPEG. */
 export const saveDocumentBuffer = async (orgId: string, buffer: Buffer): Promise<string> => {
   if (buffer.length > MAX_FILE_SIZE) {
     throw new HttpError(400, 'Ukuran dokumen gambar maksimal 5 MB.');
@@ -87,7 +150,7 @@ export const saveDocumentBuffer = async (orgId: string, buffer: Buffer): Promise
     throw new HttpError(400, 'Isi berkas dokumen bukan gambar yang valid.');
   }
   const processed = await sharp(buffer).rotate().jpeg({ quality: 88 }).toBuffer();
-  const saved = await writeOrgUploadJpeg(orgId, processed);
+  const saved = await storeProcessedJpeg(orgId, processed);
   return saved.url;
 };
 
@@ -218,7 +281,7 @@ export const watermarkImage = async (
       .jpeg({ quality: 85 })
       .toBuffer();
 
-    const saved = await writeOrgUploadJpeg(orgId, processed);
+    const saved = await storeProcessedJpeg(orgId, processed);
 
     req.processedImage = {
       path: saved.filePath,

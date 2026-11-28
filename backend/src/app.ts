@@ -17,6 +17,11 @@ import { errorHandler } from './middlewares/error.middleware';
 const app: Application = express();
 
 // Allowed origins whitelist
+const envOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 const allowedOrigins = [
   'http://localhost:4200',
   'http://127.0.0.1:4200',
@@ -24,7 +29,9 @@ const allowedOrigins = [
   'http://127.0.0.1:3000',
   'http://localhost:5500',
   'http://127.0.0.1:62568',
-  process.env.CORS_ORIGIN
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '',
+  process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '',
+  ...envOrigins
 ].filter(Boolean) as string[];
 
 // Dynamic CORS configuration
@@ -37,6 +44,7 @@ app.use(cors({
     if (
       process.env.NODE_ENV !== 'production' ||
       allowedOrigins.includes(origin) ||
+      (process.env.VERCEL === '1' && origin.endsWith('.vercel.app')) ||
       origin.startsWith('http://localhost:') ||
       origin.startsWith('http://127.0.0.1:')
     ) {

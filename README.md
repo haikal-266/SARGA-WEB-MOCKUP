@@ -1,168 +1,63 @@
-# SARGA - Sistem Inventaris & Peminjaman Komunitas
+# SARGA — Sistem Inventaris & Peminjaman Komunitas
 
-Repositori ini memuat seluruh aset rancangan, spesifikasi kebutuhan, prototipe antarmuka, inisialisasi arsitektur kode sumber untuk aplikasi **SARGA**, serta konfigurasi standar pengembangan tim (*AI Agent Skills*).
+Platform peminjaman dan pencatatan inventaris barang bersama untuk komunitas, RT/RW, kantor, dan organisasi.
 
----
-
-## 📚 Dokumen Spesifikasi & Fitur
-- **Laporan Lengkap Fitur & Keamanan:** [All Feature.md](./All%20Feature.md) *(Inventarisasi seluruh fitur antarmuka mockup + fitur sensor & watermark identitas)*.
-- **Dokumen SRS Versi Markdown:** [SRS_Sarga_v1.2.md](./SRS_Sarga_v1.2.md) *(Dikonversi dari `SRS_Sarga_v1.2.pdf` untuk kemudahan analisis dan implementasi teknis)*.
-- **Dokumen SRS PDF Asli:** `SRS_Sarga_v1.2.pdf`.
-
----
-
-## 🏗️ Struktur Proyek (Monorepo)
+## Struktur Proyek
 
 ```
-WEB MOCKUP/
-├── .agents/skills/        # AI Coding Agent Skills bersama untuk tim (Anti-slop, UI, Mobile, a11y)
-├── .gemini/plugins/       # Plugin efisiensi konteks (context-mode)
-├── backend/               # Node.js + Express + TypeScript + Prisma ORM (SQLite)
-├── frontend/              # Angular 19 SPA + TypeScript (Standalone Components)
-├── mockup/                # Prototipe interaktif statis (HTML/CSS/JS - Live di Vercel)
-├── All Feature.md         # Laporan inventaris seluruh fitur antarmuka & proteksi data
-├── SRS_Sarga_v1.2.md      # Spesifikasi Software Requirement Specification lengkap
-├── .gitignore             # Konfigurasi filter git monorepo
-└── README.md              # Dokumentasi utama proyek
+.
+├── api/                 # Entrypoint Serverless Function untuk Vercel (/api/*)
+├── backend/             # Express + TypeScript + Prisma ORM
+├── frontend/            # Angular 19 SPA
+├── vercel.json          # Konfigurasi build & routing FE + BE di Vercel
+└── README.md
 ```
 
----
+## Menjalankan Secara Lokal
 
-## 💻 Tech Stack (Sesuai SRS v1.2 Bab 2 & 5)
-
-| Komponen | Teknologi | Keterangan |
-|---|---|---|
-| **Frontend** | **Angular 19**, TypeScript, CSS3 | Single Page Application, mobile-first responsive (min 360px), palet warna emerald `#0f766e` / civic registry |
-| **Backend** | **Node.js**, **Express**, TypeScript | RESTful API, arsitektur modular (routes, controllers, services, middlewares) |
-| **Database & ORM** | **SQLite**, **Prisma ORM** | Skema database relasional: `Organization`, `User`, `Membership`, `Item`, `LoanTransaction`, `AuditLog`, `Announcement` |
-| **Keamanan & Validasi** | **JWT**, **bcryptjs**, **Zod** | Enkripsi password, validasi skema request, proteksi role & token |
-| **Prototipe UI** | HTML5, Vanilla JS, CSS3 | Tersedia di direktori `mockup/` |
-
----
-
-## 🧠 Standar Pengembangan & AI Agent Skills (`.agents/skills/`)
-
-Untuk menjaga kualitas kode, konsistensi desain, dan mencegah *AI slop* (kode/komentar generik hasil generate AI yang tidak perlu), proyek ini menyertakan direktori standar **AI Skills** di dalam repositori.
-
-### Mengapa Skills ini Perlu Digunakan Bersama oleh Tim?
-1. **Standar Desain & Warna Seragam:** Mencegah AI menghasilkan warna sembarangan di luar palet resmi SARGA (Emerald `#0f766e`, Paper `#fffefb`, Slate Muted `#475569`).
-2. **Kualitas & Kebersihan Kode:** Menghindari komentar basa-basi AI dan struktur kode yang redundan.
-3. **Mobile-First & Aksesibilitas:** Memastikan seluruh halaman yang dikembangkan tim responsif (min 360px) dan memenuhi standar kontras WCAG AA.
-4. **Otomatis untuk Semua Anggota Tim:** Karena disimpan di folder `.agents/skills/`, setiap anggota tim yang menggunakan AI coding assistant (seperti Antigravity) akan langsung membaca dan menerapkan panduan yang sama tanpa perlu konfigurasi ulang.
-
-### Daftar Skills yang Aktif:
-- **`antislop`**: Filter acuan utama untuk menghentikan output kode dan styling AI yang generik/klise.
-- **`antislop-code`**: Aturan kebersihan komentar kode (hanya simpan komentar penting/logika bisnis, hapus komentar penjelasan sintaks dasar).
-- **`antislop-human`**: Standar aksesibilitas manusia (kontras warna teks/latar, interaksi keyboard, focus ring, tap target min 44x44px).
-- **`antislop-layoutmobile`**: Standar layout responsif, pencegahan horizontal scroll/overflow, dan adaptasi grid mobile ke desktop.
-- **`antislop-ui`**: Standar visual komponen, hierarki tipografi Epilogue, border radius, serta ritme spasi.
-- **`context-mode` (`.gemini/plugins/`)**: Melindungi context window agent agar tidak boros token saat membaca log atau berkas besar.
-
----
-
-## ⚡ Panduan Menjalankan Sistem
-
-### 1. Menjalankan Backend (`backend/`)
+### 1. Backend (`backend/`)
 ```bash
 cd backend
 npm install
-
-# Inisialisasi Database SQLite & Prisma Client
+cp .env.example .env
 npx prisma generate
 npx prisma db push
-
-# Jalankan Server Development
+npm run prisma:seed
 npm run dev
 ```
-Server backend akan aktif di: `http://localhost:5000` (API Base: `http://localhost:5000/api/v1`).
+Backend berjalan di `http://localhost:5000` (`GET /api/health`).
 
----
-
-### 2. Menjalankan Frontend (`frontend/`)
+### 2. Frontend (`frontend/`)
 ```bash
 cd frontend
 npm install
-
-# Jalankan Server Frontend Angular
 npm start
 ```
-Aplikasi web Angular dapat dibuka di browser melalui: `http://localhost:4200`.
+Frontend berjalan di `http://localhost:4200`.
 
----
-
-### 3. Prototipe Antarmuka Mockup (`mockup/`)
-Direktori `mockup/` tetap terjaga utuh dan independen untuk kebutuhan presentasi, pitch deck, atau deployment Vercel.
-```bash
-cd mockup
-# Buka index.html di browser atau gunakan Live Server
-```
-
----
-
-### 4. Menjalankan Tes Backend
+### 3. Menjalankan Tes Backend
 ```bash
 cd backend
-npm install
 npm test
 ```
-Tes memakai database terpisah (`backend/prisma/test.db`) sehingga tidak mengubah data development. Script `pretest` menyiapkan skema secara otomatis.
 
----
+## Deploy Gratis ke Vercel (Frontend + Backend)
 
-## 🔌 Ringkasan Endpoint Backend
+Proyek ini sudah dikonfigurasi di `vercel.json` dan `api/index.js` agar **Frontend Angular** dan **Backend Express** berjalan dalam satu proyek Vercel gratis.
 
-Base URL: `http://localhost:5000/api/v1`. Endpoint yang membutuhkan konteks organisasi mengirim header `x-organization-id` bersama `Authorization: Bearer <token>`.
+> **Penting untuk Vercel Serverless:** Karena Vercel tidak memiliki penyimpanan disk permanen untuk SQLite (`dev.db`) maupun folder `uploads/`, gunakan database **PostgreSQL gratis** (seperti [Neon](https://neon.tech) atau [Supabase](https://supabase.com)).
 
-Panduan lengkap untuk tim frontend (header, format respons, contoh pemanggilan, dan status setiap endpoint): [`docs/api-integration.md`](docs/api-integration.md).
-
-| Method | Endpoint | Keterangan |
-|---|---|---|
-| `POST` | `/auth/register` | Pendaftaran anggota dengan kode undangan |
-| `POST` | `/auth/login` | Login, mengembalikan token dan daftar membership |
-| `GET` | `/auth/me` | Data pengguna beserta membership aktif |
-| `GET` | `/items` | Katalog barang organisasi aktif |
-| `GET` | `/items/:id` | Detail barang, hanya untuk organisasi aktif |
-| `POST` | `/items` | Menambah barang ke organisasi aktif |
-| `POST` | `/loans` | Pengajuan pinjaman baru, status awal `MENUNGGU` |
-| `GET` | `/loans/me` | Riwayat pinjaman peminjam, bisa difilter `?status=` |
-| `GET` | `/loans` | Monitoring admin: filter `?status=`, `?q=`, dan `?overdue=` |
-| `PATCH` | `/loans/:id/approve` | Setujui pinjaman (pemilik barang atau admin) |
-| `PATCH` | `/loans/:id/reject` | Tolak pinjaman dengan alasan (pemilik/admin) |
-| `PATCH` | `/loans/:id/cancel` | Batalkan pengajuan sendiri (peminjam) |
-| `PATCH` | `/loans/:id/return` | Konfirmasi pengembalian (pemilik/admin) |
-| `GET` | `/memberships/pending` | Calon anggota menunggu verifikasi (admin) |
-| `PATCH` | `/memberships/verify` | Verifikasi anggota (admin) |
-| `PATCH` | `/memberships/reject` | Tolak pendaftaran anggota (admin) |
-| `PUT` | `/memberships/:id` | Ubah peran & jabatan anggota (admin) |
-| `GET` | `/announcements` | Daftar pengumuman organisasi, terbaru lebih dulu (anggota terverifikasi) |
-| `POST` | `/announcements` | Terbitkan pengumuman `{ title, content }` (admin) |
-| `DELETE` | `/announcements/:id` | Hapus pengumuman organisasi sendiri (admin) |
-| `GET` | `/organizations/:id/structure` | Struktur organisasi: data org, pengurus, dan anggota aktif |
-| `POST` | `/uploads` | Unggah gambar + watermark forensik (`multipart/form-data`, field `image`) |
-
-Contoh body `POST /loans`:
-
-```json
-{
-  "itemId": "<uuid barang>",
-  "expectedReturnDate": "2026-11-25T10:00:00.000Z",
-  "purpose": "Keperluan presentasi rapat tim mingguan"
-}
-```
-
-Respons sukses memakai bentuk `{ success, loan, message }`. Validasi yang diterapkan: barang harus tersedia dan berada di organisasi yang sama, bukan milik peminjam, tanggal tidak boleh di masa lalu, durasi tidak melebihi `maxDays`, dan tidak ada pengajuan `MENUNGGU` ganda untuk barang yang sama.
-
-> **Catatan frontend:** `LoanService` saat ini masih menyiapkan tipe `{ success, data }`. Perlu diselaraskan dengan bentuk respons di atas oleh tim frontend.
-
----
-
-## ✅ Konvensi Pengembangan Tim
-
-Berlaku untuk setiap fitur baru, baik perubahan backend, frontend, maupun mockup:
-
-1. **Modular.** Pisahkan routing, handler, dan logika bisnis. Tambahkan `services/` hanya ketika logika mulai dipakai ulang, bukan untuk memindahkan satu fungsi.
-2. **Batas ukuran file.** Satu file sumber tidak boleh lebih dari **1.000 baris**. Jika mendekati batas, pecah menjadi beberapa file sebelum menambah kode lagi. File generate seperti `package-lock.json` dan aset biner tidak termasuk aturan ini.
-3. **Perbarui dokumentasi.** Setiap fitur baru wajib diiringi pembaruan `README.md` yang relevan, baik dokumentasi root maupun dokumentasi modul.
-4. **Tes terlebih dahulu.** Tulis tes yang gagal, jalankan untuk memastikan kegagalannya, lalu tulis implementasi minimal, dan jalankan seluruh suite sampai hijau. `npm test` di `backend/` adalah gerbang sebelum PR.
-
-Konvensi ini berasal dari catatan Haikal dan disepakati untuk dipakai seluruh tim.
+1. Buat database PostgreSQL gratis di Neon / Supabase dan salin connection string `DATABASE_URL`.
+2. Dorong skema PostgreSQL dan seed data awal dari komputer lokal:
+   ```bash
+   cd backend
+   # Set DATABASE_URL ke PostgreSQL production terlebih dahulu
+   npx prisma db push --schema=prisma/schema.postgres.prisma
+   npx ts-node prisma/seed.ts
+   ```
+   *(Jika Anda menjalankan `seed.ts` dengan client Postgres, pastikan sudah menjalankan `npx prisma generate --schema=prisma/schema.postgres.prisma` lebih dulu; untuk kembali ke dev lokal jalankan `npx prisma generate`.)*
+3. Impor repo ke **Vercel** (Framework Preset: `Other`, Root Directory: `.`) lalu isi **Environment Variables**:
+   - `DATABASE_URL` = connection string PostgreSQL
+   - `JWT_SECRET` = string acak rahasia
+   - *(Opsional)* `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` — jika tidak diisi, unggahan gambar di Vercel otomatis dikompresi sebagai JPEG Data URL agar tetap tersimpan di PostgreSQL.
+4. Deploy. Frontend akan tersaji di `/` dan seluruh API di `/api/v1/*`.

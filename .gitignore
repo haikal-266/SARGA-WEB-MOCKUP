@@ -85,8 +85,17 @@ Desktop.ini
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# Explicitly Keep AI Agent Skills & Plugins Tracked
-!.agents/
-!.agents/skills/**
-!.gemini/
-!.gemini/plugins/**
+# Development Docs, Specs, Reports & Mockup Prototypes
+/docs/
+/mockup/
+/All Feature.md
+/SRS_Sarga_v1.2.md
+/SRS_Sarga_v1.2.pdf
+/Test Report.md
+/index.html
+
+# AI Agent Skills, Plugins & Tooling State
+.agents/
+.gemini/
+.hallmark/
+.vercel/
