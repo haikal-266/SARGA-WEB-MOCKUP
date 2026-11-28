@@ -64,7 +64,17 @@ async function main() {
     }
   });
 
-  console.log('✅ Users created:', adminUser.fullName, memberUser.fullName);
+  const nusantaraAdminUser = await prisma.user.create({
+    data: {
+      waNumber: '081298765432',
+      fullName: 'Siti Rahayu',
+      passwordHash: passwordAdmin,
+      address: 'Gedung Cyber 2 Lt. 14, Jakarta Selatan',
+      primaryOrgId: orgNusantara.id
+    }
+  });
+
+  console.log('✅ Users created:', adminUser.fullName, memberUser.fullName, nusantaraAdminUser.fullName);
 
   // 3. Create Memberships
   await prisma.membership.create({
@@ -92,6 +102,17 @@ async function main() {
     }
   });
 
+  await prisma.membership.create({
+    data: {
+      userId: nusantaraAdminUser.id,
+      orgId: orgNusantara.id,
+      role: Role.ADMIN,
+      position: 'Ketua / Kepala Kantor',
+      status: VerificationStatus.TERVERIFIKASI,
+      address: 'Lt. 14 Ruang Operasional'
+    }
+  });
+
   console.log('✅ Memberships linked');
 
   // 4. Create Items
@@ -99,6 +120,7 @@ async function main() {
     {
       code: 'ITM-001',
       orgId: orgGraha.id,
+      ownerId: adminUser.id,
       name: 'Set Obeng Presisi Elektrik',
       description: 'Set obeng presisi elektrik 24 mata bor untuk perbaikan elektronik dan gawai rumah tangga.',
       contents: JSON.stringify(['Gagang obeng elektrik', '24 mata bor baja S2', 'Kabel USB-C', 'Kotak aluminium']),
@@ -111,6 +133,7 @@ async function main() {
     {
       code: 'ITM-002',
       orgId: orgGraha.id,
+      ownerId: adminUser.id,
       name: 'Tangga Lipat Aluminium 3.8m',
       description: 'Tangga teleskopik multifungsi aluminium dengan daya tampung beban maksimal 150kg.',
       contents: JSON.stringify(['Tangga lipat teleskopik', 'Kaki karet anti-slip']),
@@ -123,6 +146,7 @@ async function main() {
     {
       code: 'ITM-003',
       orgId: orgGraha.id,
+      ownerId: adminUser.id,
       name: 'Tenda Dome Kapasitas 4 Orang',
       description: 'Tenda kemping double layer tahan air dengan frame fiber dan terpal alas.',
       contents: JSON.stringify(['Tenda inner', 'Flysheet waterproof', 'Set frame fiber', '8 pasak besi', 'Tas simpan']),
@@ -135,6 +159,7 @@ async function main() {
     {
       code: 'ITM-004',
       orgId: orgGraha.id,
+      ownerId: adminUser.id,
       name: 'Mesin Potong Rumput 2-Tak',
       description: 'Pemotong rumput portable tenaga bensin campur untuk halaman dan lapangan bersama.',
       contents: JSON.stringify(['Mesin rumput', 'Mata pisau baja', 'Kacamata pelindung safety', 'Botol takar campur bensin']),
@@ -147,6 +172,7 @@ async function main() {
     {
       code: 'ITM-005',
       orgId: orgGraha.id,
+      ownerId: adminUser.id,
       name: 'Proyektor Mini Portable 1080p',
       description: 'Proyektor multimedia HDMI/WiFi untuk nobar, rapat warga, dan presentasi.',
       contents: JSON.stringify(['Proyektor unit', 'Remote control', 'Kabel HDMI 3m', 'Kabel power', 'Tripod mini']),
@@ -158,8 +184,27 @@ async function main() {
     }
   ];
 
+  const createdItems = [];
   for (const item of itemsData) {
-    await prisma.item.create({ data: item });
+    createdItems.push(await prisma.item.create({ data: item }));
+  }
+
+  const tendaItem = createdItems.find((item) => item.code === 'ITM-003');
+  if (tendaItem) {
+    const startDate = new Date();
+    const endDate = new Date(startDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+    await prisma.loanTransaction.create({
+      data: {
+        orgId: orgGraha.id,
+        itemId: tendaItem.id,
+        borrowerId: memberUser.id,
+        ownerId: adminUser.id,
+        startDate,
+        endDate,
+        status: 'AKTIF',
+        purpose: 'Kegiatan kemah bakti akhir pekan warga blok C'
+      }
+    });
   }
 
   console.log('✅ Inventory items seeded:', itemsData.length, 'items');

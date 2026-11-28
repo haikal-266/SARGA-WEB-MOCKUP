@@ -1,4 +1,4 @@
-import { Component, inject, computed, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -184,7 +184,7 @@ import { VerificationStatus } from '../../core/models';
                 </p>
                 <div class="doc-actions">
                   <button class="btn-secondary btn-sm" type="button" (click)="openDocModal()">
-                    👁️ Buka Pop-Up Pratinjau Dokumen
+                    Lihat Pratinjau Dokumen
                   </button>
                 </div>
               </div>
@@ -199,7 +199,7 @@ import { VerificationStatus } from '../../core/models';
               <div *ngFor="let m of otherMemberships()" class="list-item row">
                 <div>
                   <span class="cell-main">
-                    {{ m.organization?.name || ('Organisasi ' + m.orgId) }}
+                    {{ m.organization?.name || 'Organisasi terdaftar' }}
                   </span>
                   <span class="cell-sub">
                     {{ m.role === 'ADMIN' ? 'Pengurus' : 'Anggota' }} · {{ formatStatus(m.status) }}
@@ -226,18 +226,21 @@ import { VerificationStatus } from '../../core/models';
       <!-- Modal Pratinjau Dokumen -->
       <div
         *ngIf="showDocModal"
-        class="modal-overlay"
+        class="modal-backdrop"
         (click)="closeDocModal()"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-doc-title"
       >
-        <div class="modal-box" (click)="$event.stopPropagation()">
+        <div
+          class="modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-doc-title"
+          (click)="$event.stopPropagation()"
+        >
           <div class="modal-head">
-            <h3 id="modal-doc-title">Pratinjau Dokumen Verifikasi</h3>
+            <h2 id="modal-doc-title">Pratinjau Dokumen Verifikasi</h2>
             <button
               type="button"
-              class="btn-close"
+              class="modal-close"
               (click)="closeDocModal()"
               aria-label="Tutup pratinjau dokumen"
             >
@@ -245,12 +248,17 @@ import { VerificationStatus } from '../../core/models';
             </button>
           </div>
           <div class="modal-body">
-            <img
-              [src]="documentImage()"
-              [alt]="'Dokumen lengkap ' + (currentUser()?.fullName || 'anggota')"
-              class="modal-img"
-              (error)="handleDocImageError($event)"
-            />
+            <div class="doc-preview-frame">
+              <img
+                [src]="documentImage()"
+                [alt]="'Dokumen lengkap ' + (currentUser()?.fullName || 'anggota')"
+                class="doc-preview-full"
+                (error)="handleDocImageError($event)"
+              />
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" (click)="closeDocModal()">Tutup</button>
           </div>
         </div>
       </div>
@@ -264,9 +272,10 @@ import { VerificationStatus } from '../../core/models';
 
     .item-head {
       display: flex;
+      flex-wrap: wrap;
       align-items: flex-start;
       justify-content: space-between;
-      gap: 1rem;
+      gap: 0.75rem;
       margin-bottom: 1.25rem;
     }
     .cell-main {
@@ -346,9 +355,10 @@ import { VerificationStatus } from '../../core/models';
       }
     }
     .doc-thumb-preview {
-      width: 140px;
-      height: 95px;
-      flex: 0 0 140px;
+      width: 100%;
+      max-width: 240px;
+      height: 132px;
+      flex: none;
       border: 1px solid var(--color-rule);
       border-radius: 8px;
       overflow: hidden;
@@ -358,6 +368,13 @@ import { VerificationStatus } from '../../core/models';
       align-items: center;
       justify-content: center;
       transition: transform 0.1s ease, border-color 0.15s ease;
+    }
+    @media (min-width: 560px) {
+      .doc-thumb-preview {
+        width: 140px;
+        height: 95px;
+        flex: 0 0 140px;
+      }
     }
     .doc-thumb-preview:hover {
       border-color: var(--color-accent);
@@ -370,6 +387,8 @@ import { VerificationStatus } from '../../core/models';
     }
     .pending-card-content {
       flex: 1;
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
     .pending-card-content p {
       margin: 0 0 0.35rem 0;
@@ -385,93 +404,9 @@ import { VerificationStatus } from '../../core/models';
     .other-orgs {
       margin-top: 1rem;
     }
-    .list {
-      display: flex;
-      flex-direction: column;
-      margin-top: 0.75rem;
-      border: 1px solid var(--color-rule);
-      border-radius: var(--radius-input);
-      overflow: hidden;
-    }
-    .list-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: 0.75rem 1rem;
-      background: var(--color-paper);
-    }
-    .list-item + .list-item {
-      border-top: 1px solid var(--color-rule);
-    }
-
-    /* Modal */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(17, 17, 17, 0.65);
-      backdrop-filter: blur(2px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      padding: 1rem;
-    }
-    .modal-box {
-      background: #ffffff;
-      border-radius: var(--radius-card);
-      box-shadow: var(--shadow-floating);
-      max-width: 600px;
-      width: 100%;
-      overflow: hidden;
-      border: 1px solid var(--color-rule);
-    }
-    .modal-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.85rem 1.25rem;
-      border-bottom: 1px solid var(--color-rule);
-      background: var(--color-paper-2);
-    }
-    .modal-head h3 {
-      margin: 0;
-      font-size: 0.95rem;
-      font-weight: 700;
-    }
-    .btn-close {
-      background: transparent;
-      border: none;
-      font-size: 1.1rem;
-      cursor: pointer;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-      color: var(--color-muted);
-    }
-    .btn-close:hover {
-      color: var(--color-ink);
-      background: var(--color-paper-3);
-    }
-    .modal-body {
-      padding: 1.25rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--color-paper);
-    }
-    .modal-img {
-      max-width: 100%;
-      max-height: 70vh;
-      object-fit: contain;
-      border-radius: 6px;
-      border: 1px solid var(--color-rule);
-    }
   `]
 })
-export class StatusAkunComponent {
+export class StatusAkunComponent implements OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly toastService = inject(ToastService);
   private readonly router = inject(Router);
@@ -575,12 +510,25 @@ export class StatusAkunComponent {
     this.authService.setActiveOrg(orgId);
   }
 
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.showDocModal) {
+      this.closeDocModal();
+    }
+  }
+
+  ngOnDestroy(): void {
+    document.body.classList.remove('modal-open');
+  }
+
   openDocModal(): void {
     this.showDocModal = true;
+    document.body.classList.add('modal-open');
   }
 
   closeDocModal(): void {
     this.showDocModal = false;
+    document.body.classList.remove('modal-open');
   }
 
   handleDocImageError(event: Event): void {

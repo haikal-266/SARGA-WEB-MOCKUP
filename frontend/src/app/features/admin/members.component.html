@@ -89,7 +89,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngIf="!loading && filteredMembers.length === 0">
+          <tr *ngIf="!loading && filteredMembers.length === 0" class="empty-row">
             <td colspan="5">
               <div class="empty" style="padding:1.25rem">
                 <p class="empty-title">Tidak ada anggota</p>
@@ -101,7 +101,7 @@
           </tr>
 
           <tr *ngFor="let member of filteredMembers">
-            <td>
+            <td data-label="Nama">
               <div class="member-cell">
                 <span class="avatar avatar-sm" aria-hidden="true">{{ initials(member.fullName) }}</span>
                 <div>
@@ -110,16 +110,16 @@
                 </div>
               </div>
             </td>
-            <td>
+            <td data-label="Peran dan posisi">
               <span class="cell-main">{{ member.role === 'ADMIN' ? 'Pengurus' : 'Anggota' }}</span>
               <span class="cell-sub">{{ member.position || 'Anggota' }}</span>
             </td>
-            <td>
+            <td data-label="Status">
               <span [class]="statusTagClass(member.status)">{{ statusLabel(member.status) }}</span>
               <span *ngIf="member.isLocalOnly" class="cell-sub">Lokal peramban</span>
             </td>
-            <td>{{ formatDate(member.joinedAt) }}</td>
-            <td>
+            <td data-label="Bergabung">{{ formatDate(member.joinedAt) }}</td>
+            <td data-label="Aksi">
               <button type="button" class="btn-secondary btn-sm" (click)="openMemberModal(member)">
                 Rincian &amp; Peran
               </button>

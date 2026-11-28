@@ -87,9 +87,7 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${this.apiUrl}/register`, data).pipe(
       tap(response => {
         localStorage.setItem('sarga_token', response.token);
-        this.setUser(response.user);
-        const orgId = response.user.memberships?.[0]?.orgId;
-        if (orgId) this.setActiveOrg(orgId);
+        this.setUser(response.user, response.user.memberships?.[0]?.orgId);
       })
     );
   }
@@ -98,12 +96,10 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials).pipe(
       tap(response => {
         localStorage.setItem('sarga_token', response.token);
-        this.setUser(response.user);
-        const merged = this.currentUser()?.memberships || [];
-        const active = merged.find(m => m.status === 'TERVERIFIKASI') || merged[0];
-        if (active) {
-          this.setActiveOrg(active.orgId);
-        }
+        const memberships = response.user.memberships || [];
+        const preferred =
+          memberships.find(m => m.status === 'TERVERIFIKASI')?.orgId || memberships[0]?.orgId;
+        this.setUser(response.user, preferred);
       })
     );
   }
@@ -169,9 +165,7 @@ export class AuthService {
         return m;
       });
       const updatedUser = { ...user, memberships: updatedMemberships };
-      this.setUser(updatedUser);
-      const match = updatedMemberships.find(m => m.id === active.id) || null;
-      this.activeMembership.set(match);
+      this.setUser(updatedUser, active.orgId);
     }
   }
 
@@ -179,7 +173,7 @@ export class AuthService {
     this.loadStoredUser();
   }
 
-  private setUser(user: User | null): void {
+  private setUser(user: User | null, preferredOrgId?: string): void {
     if (user) {
       const localExtras = this.loadLocalMemberships(user.id);
       const baseMemberships = user.memberships || [];
@@ -201,8 +195,22 @@ export class AuthService {
         name: user.name || user.fullName,
         memberships: merged
       };
+      // Set activeMembership before emitting on currentUser$ so direct-route subscribers see active org/role immediately.
+      this.currentUser.set(user);
+      const storedOrgId = preferredOrgId || localStorage.getItem('sarga_active_org_id');
+      const match =
+        (storedOrgId ? merged.find(m => m.orgId === storedOrgId) : undefined) ||
+        merged.find(m => m.status === 'TERVERIFIKASI') ||
+        merged[0] ||
+        null;
+      if (match) {
+        localStorage.setItem('sarga_active_org_id', match.orgId);
+      }
+      this.activeMembership.set(match);
+    } else {
+      this.currentUser.set(null);
+      this.activeMembership.set(null);
     }
-    this.currentUser.set(user);
     this.userSubject.next(user);
   }
 
@@ -245,13 +253,6 @@ export class AuthService {
       this.http.get<{ success: boolean; user: User }>(`${this.apiUrl}/me`).subscribe({
         next: (res) => {
           this.setUser(res.user);
-          const memberships = this.currentUser()?.memberships || [];
-          const activeOrgId = localStorage.getItem('sarga_active_org_id');
-          if (activeOrgId && memberships.some(m => m.orgId === activeOrgId)) {
-            this.setActiveOrg(activeOrgId);
-          } else if (memberships.length > 0) {
-            this.setActiveOrg(memberships[0].orgId);
-          }
         },
         error: () => this.logout()
       });

@@ -6,6 +6,7 @@ import {
   HostListener,
   Input,
   OnChanges,
+  OnDestroy,
   Output,
   SimpleChanges,
   ViewChild,
@@ -158,7 +159,7 @@ import { MembershipService } from '../../core/services/membership.service';
     </div>
   `
 })
-export class MemberDocModalComponent implements OnChanges {
+export class MemberDocModalComponent implements OnChanges, OnDestroy {
   private readonly membershipService = inject(MembershipService);
 
   @Input() open = false;
@@ -176,6 +177,7 @@ export class MemberDocModalComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['open']) {
+      document.body.classList.toggle('modal-open', this.open && !!this.membership);
       if (this.open) {
         this.returnFocusEl = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         setTimeout(() => this.closeBtn?.nativeElement.focus());
@@ -185,6 +187,10 @@ export class MemberDocModalComponent implements OnChanges {
         setTimeout(() => el.focus());
       }
     }
+  }
+
+  ngOnDestroy(): void {
+    document.body.classList.remove('modal-open');
   }
 
   get applicantName(): string {

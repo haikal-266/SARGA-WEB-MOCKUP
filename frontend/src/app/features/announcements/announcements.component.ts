@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, ElementRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -8,6 +8,7 @@ import { Announcement } from '../../core/models';
 import { AlertComponent } from '../../shared/alert/alert.component';
 import { ConfirmationDialogComponent } from '../../shared/confirmation-dialog/confirmation-dialog.component';
 import { ToastService } from '../../shared/toast/toast.service';
+import { focusFirstInvalid } from '../../shared/utils/form-focus';
 
 /** FE-FLP-02: Papan Pengumuman Organisasi (#/pengumuman). */
 @Component({
@@ -120,6 +121,7 @@ export class AnnouncementsComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly orgService = inject(OrganizationService);
   private readonly toast = inject(ToastService);
+  private readonly hostEl = inject(ElementRef<HTMLElement>);
 
   announcements: Announcement[] = [];
   loading = true;
@@ -180,7 +182,11 @@ export class AnnouncementsComponent implements OnInit {
   submit(): void {
     this.submitted = true;
     this.formError = null;
-    if (this.titleError || this.contentError || this.saving) return;
+    if (this.titleError || this.contentError) {
+      focusFirstInvalid(this.hostEl.nativeElement);
+      return;
+    }
+    if (this.saving) return;
 
     this.saving = true;
     this.orgService.createAnnouncement({

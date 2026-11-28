@@ -6,14 +6,17 @@ import {
   HostListener,
   Input,
   OnChanges,
+  OnDestroy,
   Output,
   SimpleChanges,
-  ViewChild
+  ViewChild,
+  inject
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LoanTransaction } from '../../core/models';
 import { AlertComponent } from '../../shared/alert/alert.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
+import { focusFirstInvalid } from '../../shared/utils/form-focus';
 
 @Component({
   selector: 'app-monitoring-loan-modal',
@@ -106,11 +109,15 @@ import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.com
             <label class="label" for="monitoring-reject-reason">Alasan penolakan (minimal 5 karakter)</label>
             <textarea
               class="form-input"
+              [class.is-invalid]="!!rejectError"
+              [attr.aria-invalid]="!!rejectError"
               id="monitoring-reject-reason"
               rows="3"
               placeholder="Contoh: barang sedang digunakan untuk kegiatan organisasi."
               [(ngModel)]="rejectReason"
+              (ngModelChange)="rejectError = ''"
             ></textarea>
+            <p *ngIf="rejectError" class="error-text">{{ rejectError }}</p>
           </div>
 
           <div *ngIf="loan.status === 'DISETUJUI' || loan.status === 'AKTIF'" class="field" style="margin-top:1rem">
@@ -139,7 +146,7 @@ import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.com
           </a>
 
           <ng-container *ngIf="loan.status === 'MENUNGGU'">
-            <button *ngIf="!rejectMode" type="button" class="btn-danger" [disabled]="busy" (click)="rejectMode = true">
+            <button *ngIf="!rejectMode" type="button" class="btn-danger" [disabled]="busy" (click)="rejectMode = true; rejectError = ''">
               Tolak
             </button>
             <button *ngIf="rejectMode" type="button" class="btn-danger" [disabled]="busy" (click)="onConfirmReject()">
@@ -164,7 +171,8 @@ import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.com
     </div>
   `
 })
-export class MonitoringLoanModalComponent implements OnChanges {
+export class MonitoringLoanModalComponent implements OnChanges, OnDestroy {
+  private readonly hostEl = inject(ElementRef<HTMLElement>);
   @Input() loan: LoanTransaction | null = null;
   @Input() overdue = false;
   @Input() busy = false;
@@ -180,6 +188,7 @@ export class MonitoringLoanModalComponent implements OnChanges {
 
   rejectMode = false;
   rejectReason = '';
+  rejectError = '';
   conditionNote = '';
   private returnFocusEl: HTMLElement | null = null;
 
@@ -201,6 +210,7 @@ export class MonitoringLoanModalComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['loan']) {
+      document.body.classList.toggle('modal-open', !!this.loan);
       if (this.loan) {
         this.rejectMode = false;
         this.rejectReason = '';
@@ -213,6 +223,10 @@ export class MonitoringLoanModalComponent implements OnChanges {
         setTimeout(() => el.focus());
       }
     }
+  }
+
+  ngOnDestroy(): void {
+    document.body.classList.remove('modal-open');
   }
 
   @HostListener('document:keydown.escape')
@@ -237,9 +251,12 @@ export class MonitoringLoanModalComponent implements OnChanges {
     if (!this.loan || this.busy) return;
     const reason = this.rejectReason.trim();
     if (reason.length < 5) {
-      this.errorMessage = 'Alasan penolakan minimal 5 karakter.';
+      this.rejectError = 'Alasan penolakan minimal 5 karakter.';
+      this.errorMessage = this.rejectError;
+      focusFirstInvalid(this.hostEl.nativeElement);
       return;
     }
+    this.rejectError = '';
     this.reject.emit({ loanId: this.loan.id, reason });
   }
 

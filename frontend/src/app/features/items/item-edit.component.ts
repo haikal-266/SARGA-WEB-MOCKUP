@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -11,9 +11,13 @@ import {
   ItemService,
   normalizeItemImagePath
 } from '../../core/services/item.service';
+import { MembershipService } from '../../core/services/membership.service';
 import { AlertComponent } from '../../shared/alert/alert.component';
+import { CustomSelectComponent, SelectOption } from '../../shared/custom-select/custom-select.component';
+import { FilePickerComponent } from '../../shared/file-picker/file-picker.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
 import { ToastService } from '../../shared/toast/toast.service';
+import { focusFirstInvalid } from '../../shared/utils/form-focus';
 
 interface ItemEditForm {
   name: string;
@@ -29,7 +33,15 @@ interface ItemEditForm {
 @Component({
   selector: 'app-item-edit',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AlertComponent, StatusBadgeComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    AlertComponent,
+    CustomSelectComponent,
+    FilePickerComponent,
+    StatusBadgeComponent
+  ],
   templateUrl: './item-edit.component.html',
   styles: [`
     .image-picker-row {
@@ -44,12 +56,27 @@ interface ItemEditForm {
       }
     }
     .preview-thumb {
-      width: 120px;
-      height: 84px;
+      width: 100%;
+      max-width: 240px;
+      height: 140px;
       border-radius: 10px;
       border: 1px solid var(--color-rule);
       overflow: hidden;
       background: var(--color-paper-2);
+    }
+    @media (min-width: 600px) {
+      .preview-thumb {
+        width: 120px;
+        height: 84px;
+      }
+    }
+    @media (max-width: 480px) {
+      .edit-actions {
+        flex-direction: column;
+      }
+      .edit-actions > * {
+        width: 100%;
+      }
     }
     .preview-thumb img {
       width: 100%;
@@ -63,18 +90,28 @@ export class ItemEditComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly authService = inject(AuthService);
   private readonly itemService = inject(ItemService);
+  private readonly membershipService = inject(MembershipService);
   private readonly toastService = inject(ToastService);
+  private readonly hostEl = inject(ElementRef<HTMLElement>);
 
   private routeSub?: Subscription;
   private itemSub?: Subscription;
+  private uploadSub?: Subscription;
 
   readonly imageOptions = ITEM_IMAGE_OPTIONS;
-  readonly statusOptions: ReadonlyArray<{ value: ItemStatus; label: string }> = [
+  uploadedImageOption: readonly [string, string] | null = null;
+  uploadedFileName = '';
+  uploadingPhoto = false;
+  readonly statusOptions: ReadonlyArray<SelectOption> = [
     { value: 'TERSEDIA', label: 'Tersedia' },
     { value: 'DIPINJAM', label: 'Sedang Dipinjam' },
     { value: 'PERAWATAN', label: 'Perawatan' },
     { value: 'DIARSIPKAN', label: 'Diarsipkan (disembunyikan)' }
   ];
+
+  get imageSelectOptions(): ReadonlyArray<SelectOption> {
+    return this.availableImageOptions.map(([value, label]) => ({ value, label }));
+  }
 
   item: Item | null = null;
   currentStatus: ItemStatus = 'TERSEDIA';
@@ -82,6 +119,7 @@ export class ItemEditComponent implements OnInit, OnDestroy {
   loadError = '';
   errorMessage = '';
   successMessage = '';
+  fieldErrors = { name: '', maxDays: '', location: '', description: '', instructions: '' };
 
   form: ItemEditForm = {
     name: '',
@@ -101,8 +139,41 @@ export class ItemEditComponent implements OnInit, OnDestroy {
     return isOwner || this.authService.isAdmin();
   }
 
+  get availableImageOptions(): ReadonlyArray<readonly [string, string]> {
+    return this.uploadedImageOption ? [this.uploadedImageOption, ...this.imageOptions] : this.imageOptions;
+  }
+
   get previewImage(): string {
     return normalizeItemImagePath(this.form.image);
+  }
+
+  onPhotoPicked(file: File): void {
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      this.errorMessage = 'Format foto harus JPG, PNG, atau WebP.';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      this.errorMessage = 'Ukuran foto maksimal 5 MB.';
+      return;
+    }
+
+    this.errorMessage = '';
+    this.uploadingPhoto = true;
+    this.uploadSub?.unsubscribe();
+    this.uploadSub = this.membershipService.uploadForensicDocument(file, file.name).subscribe({
+      next: res => {
+        const resolved = normalizeItemImagePath(res.image.url);
+        this.uploadedImageOption = [resolved, 'Foto baru diunggah'];
+        this.uploadedFileName = file.name;
+        this.form.image = resolved;
+        this.uploadingPhoto = false;
+        this.toastService.show('Foto baru berhasil diunggah.', 'success');
+      },
+      error: (err: HttpErrorResponse) => {
+        this.uploadingPhoto = false;
+        this.errorMessage = err.error?.message || 'Gagal mengunggah foto baru.';
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -118,6 +189,7 @@ export class ItemEditComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
     this.successMessage = '';
     this.loadError = '';
+    this.uploadedFileName = '';
     this.item = null;
 
     if (!id) {
@@ -155,24 +227,28 @@ export class ItemEditComponent implements OnInit, OnDestroy {
     const instructions = this.form.instructions.trim();
     const maxDays = Number(this.form.maxDays);
 
-    if (!name) {
-      this.errorMessage = 'Tulis nama barang.';
-      return;
-    }
-    if (!Number.isInteger(maxDays) || maxDays < 1 || maxDays > 14) {
-      this.errorMessage = 'Maksimal hari pinjam harus antara 1 sampai 14 hari.';
-      return;
-    }
-    if (!location) {
-      this.errorMessage = 'Tulis lokasi pengambilan.';
-      return;
-    }
-    if (!description) {
-      this.errorMessage = 'Tulis deskripsi singkat.';
-      return;
-    }
-    if (!instructions || instructions.length > 250) {
-      this.errorMessage = 'Tulis catatan pemakaian (maksimal 250 karakter).';
+    this.fieldErrors = {
+      name: name ? '' : 'Nama barang wajib diisi.',
+      maxDays: Number.isInteger(maxDays) && maxDays >= 1 && maxDays <= 14 ? '' : 'Maksimal hari pinjam harus 1 sampai 14 hari.',
+      location: location ? '' : 'Lokasi pengambilan wajib diisi.',
+      description: description ? '' : 'Deskripsi singkat wajib diisi.',
+      instructions:
+        !instructions
+          ? 'Catatan pemakaian wajib diisi.'
+          : instructions.length > 250
+            ? 'Maksimal 250 karakter.'
+            : ''
+    };
+
+    if (
+      this.fieldErrors.name ||
+      this.fieldErrors.maxDays ||
+      this.fieldErrors.location ||
+      this.fieldErrors.description ||
+      this.fieldErrors.instructions
+    ) {
+      this.errorMessage = 'Periksa field wajib yang ditandai merah.';
+      focusFirstInvalid(this.hostEl.nativeElement);
       return;
     }
 
@@ -244,6 +320,10 @@ export class ItemEditComponent implements OnInit, OnDestroy {
   private populateForm(item: Item): void {
     const normalizedImg = normalizeItemImagePath(item.image || item.imageUrl);
     const hasMatch = this.imageOptions.some(([val]) => val === normalizedImg);
+    this.uploadedImageOption =
+      !hasMatch && normalizedImg !== '/img/placeholder-item.svg'
+        ? [normalizedImg, 'Foto unggahan barang']
+        : null;
     this.form = {
       name: item.name || '',
       maxDays: item.maxDays || 3,
@@ -252,7 +332,7 @@ export class ItemEditComponent implements OnInit, OnDestroy {
       description: item.description || '',
       contents: this.parseContents(item.contents).join('\n'),
       instructions: item.instructions || '',
-      image: hasMatch ? normalizedImg : '/img/placeholder-item.svg'
+      image: this.uploadedImageOption || hasMatch ? normalizedImg : '/img/placeholder-item.svg'
     };
   }
 
@@ -271,5 +351,6 @@ export class ItemEditComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.routeSub?.unsubscribe();
     this.itemSub?.unsubscribe();
+    this.uploadSub?.unsubscribe();
   }
 }

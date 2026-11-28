@@ -9,10 +9,7 @@ import { IconComponent } from '../icon/icon.component';
   template: `
     <div class="form-field-group" [class.has-error]="!!error">
       <div class="label-row" *ngIf="label">
-        <label [attr.for]="htmlFor" class="field-label">
-          {{ label }}
-          <span class="required-star" *ngIf="required" aria-hidden="true">*</span>
-        </label>
+        <label [attr.for]="htmlFor" class="field-label">{{ label }}<span class="required-star" *ngIf="required" aria-hidden="true">*</span></label>
         <span class="field-badge" *ngIf="badge">{{ badge }}</span>
       </div>
 
@@ -34,6 +31,7 @@ import { IconComponent } from '../icon/icon.component';
     :host {
       display: block;
       width: 100%;
+      scroll-margin-top: 6rem;
     }
 
     .form-field-group {

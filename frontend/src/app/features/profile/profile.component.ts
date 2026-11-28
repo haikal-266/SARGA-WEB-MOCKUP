@@ -1,4 +1,5 @@
 import { Component, ElementRef, ViewChild, inject } from '@angular/core';
+import { focusFirstInvalid } from '../../shared/utils/form-focus';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -16,12 +17,11 @@ import { ToastService } from '../../shared/toast/toast.service';
   imports: [CommonModule, FormsModule, RouterLink, AlertComponent],
   styleUrls: ['../../shared/styles/support-page.css'],
   styles: [`
-    dialog.doc-dialog { width: min(34rem, calc(100vw - 2rem)); padding: 1.5rem; border: 1px solid var(--color-muted); border-radius: var(--radius-card); color: var(--color-ink); }
-    dialog.doc-dialog::backdrop { background: rgba(17, 17, 17, 0.48); }
-    .doc-dialog h2 { margin: 0 0 0.75rem; font-size: 1.2rem; }
-    .doc-frame { background: var(--color-paper-2); border: 1px solid var(--color-rule); border-radius: 8px; padding: 0.5rem; max-height: 420px; overflow: auto; }
+    dialog.doc-dialog { width: min(36rem, calc(100vw - 1.5rem)); max-height: 90dvh; padding: 0; border: 1px solid var(--color-rule); border-radius: var(--radius-card); color: var(--color-ink); box-shadow: var(--shadow-floating); overflow: hidden; }
+    dialog.doc-dialog[open] { display: flex; flex-direction: column; }
+    dialog.doc-dialog::backdrop { background: rgba(17, 17, 17, 0.55); }
+    .doc-frame { background: var(--color-paper-2); border: 1px solid var(--color-rule); border-radius: 10px; padding: 0.5rem; max-height: 55dvh; overflow: auto; }
     .doc-frame img { display: block; max-width: 100%; height: auto; margin: 0 auto; }
-    .doc-actions { display: flex; justify-content: flex-end; margin-top: 1rem; }
     .org-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
     .section-head h2 { font-size: 1.15rem; margin: 0 0 0.25rem; }
     .section-head p { margin: 0 0 0.75rem; font-size: 0.85rem; color: var(--color-muted); }
@@ -103,7 +103,7 @@ import { ToastService } from '../../shared/toast/toast.service';
           <div class="panel" *ngIf="me.memberships?.length; else noMemberships">
             <div class="list-item" *ngFor="let m of me.memberships">
               <div>
-                <span class="person-name">{{ m.organization?.name || 'Organisasi ' + m.orgId }}</span>
+                <span class="person-name">{{ m.organization?.name || 'Organisasi terdaftar' }}</span>
                 <span class="person-sub">{{ roleLabel(m) }} · {{ m.position || 'Anggota' }}</span>
                 <span class="person-sub" *ngIf="m.status === 'DITOLAK' && m.rejectionReason">Alasan: {{ m.rejectionReason }}</span>
               </div>
@@ -125,22 +125,27 @@ import { ToastService } from '../../shared/toast/toast.service';
         </section>
       </ng-container>
 
-      <dialog #docDialog class="doc-dialog" aria-label="Dokumen pendaftaran saya">
-        <h2>Dokumen pendaftaran saya</h2>
-        <ng-container *ngIf="active() as m">
-          <p style="font-size:.85rem;margin:0 0 .75rem">Dokumen yang Anda lampirkan sebagai acuan verifikasi pengurus.</p>
-          <div class="doc-frame" *ngIf="m.documentUrl; else noDoc">
-            <img [src]="m.documentUrl" [alt]="'Dokumen pendaftaran ' + (user()?.fullName || '')" />
-          </div>
-          <ng-template #noDoc>
-            <div class="empty-state"><p class="empty-title">Dokumen belum tersedia</p>
-              <p class="empty-body">Unggah dokumen lewat API belum didukung, jadi belum ada berkas untuk ditampilkan.</p></div>
-          </ng-template>
-          <p style="font-size:.82rem;margin:.75rem 0 0" *ngIf="m.documentType || m.documentName">
-            <strong>Jenis:</strong> {{ m.documentType || '—' }} · <strong>Berkas:</strong> {{ m.documentName || '—' }}
-          </p>
-        </ng-container>
-        <div class="doc-actions"><button type="button" class="btn btn-secondary" (click)="closeDoc()">Tutup</button></div>
+      <dialog #docDialog class="doc-dialog" aria-labelledby="profile-doc-title" (click)="onDialogClick($event)">
+        <div class="modal-head">
+          <h2 id="profile-doc-title">Dokumen pendaftaran saya</h2>
+          <button type="button" class="modal-close" aria-label="Tutup dialog" (click)="closeDoc()">✕</button>
+        </div>
+        <div class="modal-body">
+          <ng-container *ngIf="active() as m">
+            <p class="small muted" style="margin:0 0 .75rem">Dokumen yang Anda lampirkan sebagai acuan verifikasi pengurus.</p>
+            <div class="doc-frame" *ngIf="m.documentUrl; else noDoc">
+              <img [src]="m.documentUrl" [alt]="'Dokumen pendaftaran ' + (user()?.fullName || '')" />
+            </div>
+            <ng-template #noDoc>
+              <div class="empty-state"><p class="empty-title">Dokumen belum tersedia</p>
+                <p class="empty-body">Belum ada foto dokumen yang dilampirkan pada keanggotaan ini.</p></div>
+            </ng-template>
+            <p class="small" style="margin:.75rem 0 0;overflow-wrap:anywhere" *ngIf="m.documentType || m.documentName">
+              <strong>Jenis:</strong> {{ m.documentType || '—' }} · <strong>Berkas:</strong> {{ m.documentName || '—' }}
+            </p>
+          </ng-container>
+        </div>
+        <div class="modal-actions"><button type="button" class="btn btn-secondary" (click)="closeDoc()">Tutup</button></div>
       </dialog>
     </div>
   `
@@ -150,6 +155,7 @@ export class ProfileComponent {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly http = inject(HttpClient);
+  private readonly hostEl = inject(ElementRef<HTMLElement>);
 
   readonly user = this.auth.currentUser;
   readonly active = this.auth.activeMembership;
@@ -172,7 +178,11 @@ export class ProfileComponent {
   submitPassword(): void {
     this.submitted = true;
     const e = this.errors;
-    if (e.current || e.next || e.confirm || this.savingPassword) return;
+    if (e.current || e.next || e.confirm) {
+      focusFirstInvalid(this.hostEl.nativeElement);
+      return;
+    }
+    if (this.savingPassword) return;
 
     this.savingPassword = true;
     this.http.put<{ success: boolean; message: string }>(`${environment.apiUrl}/auth/password`, {
@@ -216,12 +226,18 @@ export class ProfileComponent {
 
   switchOrg(m: Membership): void {
     this.auth.setActiveOrg(m.orgId);
-    this.toast.show(`Organisasi aktif: ${m.organization?.name || m.orgId}.`, 'success');
+    this.toast.show(`Organisasi aktif: ${m.organization?.name || 'Organisasi terdaftar'}.`, 'success');
   }
 
   openMyDocModal(): void {
     const dialog = this.docDialog?.nativeElement;
     if (dialog && !dialog.open) dialog.showModal();
+  }
+
+  onDialogClick(event: MouseEvent): void {
+    if (event.target === this.docDialog?.nativeElement) {
+      this.closeDoc();
+    }
   }
 
   closeDoc(): void {

@@ -1,15 +1,17 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject } from '@angular/core';
+import { Component, ElementRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { WatermarkedDocumentOutput } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { MembershipService } from '../../core/services/membership.service';
 import { AlertComponent } from '../../shared/alert/alert.component';
+import { CustomSelectComponent, SelectOption } from '../../shared/custom-select/custom-select.component';
 import { FormFieldComponent } from '../../shared/form-field/form-field.component';
 import { IconComponent } from '../../shared/icon/icon.component';
 import { IdWatermarkCanvasComponent } from '../../shared/components/id-watermark-canvas/id-watermark-canvas.component';
+import { focusFirstInvalid } from '../../shared/utils/form-focus';
 
 interface InviteStatus {
   kind: 'ok' | 'info' | 'warn';
@@ -25,6 +27,7 @@ interface InviteStatus {
     FormsModule,
     RouterLink,
     AlertComponent,
+    CustomSelectComponent,
     FormFieldComponent,
     IconComponent,
     IdWatermarkCanvasComponent
@@ -35,6 +38,13 @@ interface InviteStatus {
 export class RegisterComponent {
   private readonly authService = inject(AuthService);
   private readonly membershipService = inject(MembershipService);
+  private readonly hostEl = inject(ElementRef<HTMLElement>);
+
+  readonly docTypeOptions: ReadonlyArray<SelectOption> = [
+    { value: 'KTP', label: 'KTP (Kartu Tanda Penduduk)' },
+    { value: 'KTA', label: 'KTA (Kartu Tanda Anggota)' },
+    { value: 'SIM / Lainnya', label: 'SIM / Dokumen Resmi Lainnya' }
+  ];
 
   form = {
     inviteCode: '',
@@ -63,8 +73,16 @@ export class RegisterComponent {
   loading = false;
   errorMessage = '';
   successMessage = '';
+  fieldErrors = {
+    inviteCode: '',
+    fullName: '',
+    waNumber: '',
+    password: '',
+    documentUrl: ''
+  };
 
   onInviteCodeChanged(): void {
+    this.fieldErrors.inviteCode = '';
     const code = this.form.inviteCode.trim().toUpperCase();
     if (this.stepTwoUnlocked && code !== this.form.inviteCode.trim().toUpperCase()) {
       this.stepTwoUnlocked = false;
@@ -88,13 +106,16 @@ export class RegisterComponent {
 
   unlockWithCustomCode(): void {
     const code = this.form.inviteCode.trim().toUpperCase();
+    this.fieldErrors.inviteCode = '';
     if (code.length < 3) {
       this.stepTwoUnlocked = false;
+      this.fieldErrors.inviteCode = 'Masukkan kode undangan resmi (minimal 3 karakter).';
       this.inviteStatus = {
         kind: 'warn',
         title: 'Kode terlalu pendek',
         message: 'Masukkan kode undangan resmi dari pengurus (minimal 3 karakter).'
       };
+      focusFirstInvalid(this.hostEl.nativeElement);
       return;
     }
 
@@ -106,6 +127,7 @@ export class RegisterComponent {
         this.validatingCode = false;
         if (res.success && res.organization) {
           this.stepTwoUnlocked = true;
+          this.fieldErrors.inviteCode = '';
           this.resolvedOrgName = res.organization.name;
           this.orgType = res.organization.type || 'Organisasi';
           this.orgAddress = res.organization.address || '';
@@ -120,21 +142,26 @@ export class RegisterComponent {
           };
         } else {
           this.stepTwoUnlocked = false;
+          this.fieldErrors.inviteCode = res.message || 'Kode undangan tidak valid.';
           this.inviteStatus = {
             kind: 'warn',
             title: 'Kode Tidak Valid',
             message: res.message || 'Kode undangan tidak ditemukan atau organisasi belum aktif.'
           };
+          focusFirstInvalid(this.hostEl.nativeElement);
         }
       },
       error: (err: HttpErrorResponse) => {
         this.validatingCode = false;
         this.stepTwoUnlocked = false;
+        const msg = err.error?.message || 'Kode undangan tidak valid atau organisasi tidak aktif.';
+        this.fieldErrors.inviteCode = msg;
         this.inviteStatus = {
           kind: 'warn',
           title: 'Validasi Gagal',
-          message: err.error?.message || 'Kode undangan tidak valid atau organisasi tidak aktif.'
+          message: msg
         };
+        focusFirstInvalid(this.hostEl.nativeElement);
       }
     });
   }
@@ -144,6 +171,7 @@ export class RegisterComponent {
     this.form.documentType = doc.documentType;
     this.form.documentName = doc.fileName;
     this.form.documentUrl = doc.dataUrl;
+    this.fieldErrors.documentUrl = '';
   }
 
   onDocumentCleared(): void {
@@ -159,16 +187,23 @@ export class RegisterComponent {
     const waNumber = this.form.waNumber.trim();
     const inviteCode = this.form.inviteCode.trim().toUpperCase();
 
-    if (!fullName || !waNumber || !inviteCode) {
-      this.errorMessage = 'Nama, nomor WhatsApp, dan kode undangan wajib diisi.';
-      return;
-    }
-    if (this.form.password.length < 6) {
-      this.errorMessage = 'Kata sandi minimal 6 karakter.';
-      return;
-    }
-    if (!this.form.documentUrl) {
-      this.errorMessage = 'Harap unggah foto identitas (KTP/KTA) untuk verifikasi pengurus.';
+    this.fieldErrors = {
+      inviteCode: inviteCode ? '' : 'Kode undangan wajib diisi.',
+      fullName: fullName ? '' : 'Nama lengkap wajib diisi.',
+      waNumber: waNumber ? '' : 'Nomor WhatsApp wajib diisi.',
+      password: this.form.password.length >= 6 ? '' : 'Kata sandi minimal 6 karakter.',
+      documentUrl: this.form.documentUrl ? '' : 'Harap unggah foto identitas (KTP/KTA) untuk verifikasi pengurus.'
+    };
+
+    if (
+      this.fieldErrors.inviteCode ||
+      this.fieldErrors.fullName ||
+      this.fieldErrors.waNumber ||
+      this.fieldErrors.password ||
+      this.fieldErrors.documentUrl
+    ) {
+      this.errorMessage = 'Lengkapi seluruh field wajib yang ditandai merah sebelum mengirim.';
+      focusFirstInvalid(this.hostEl.nativeElement);
       return;
     }
 

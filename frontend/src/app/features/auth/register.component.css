@@ -47,8 +47,20 @@
 
 .invite-action-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.65rem;
+}
+
+@media (max-width: 480px) {
+  .invite-action-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .btn-validate {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .uppercase-input {

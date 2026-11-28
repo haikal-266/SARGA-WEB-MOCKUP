@@ -6,15 +6,19 @@ import {
   HostListener,
   Input,
   OnChanges,
+  OnDestroy,
   Output,
   SimpleChanges,
-  ViewChild
+  ViewChild,
+  inject
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { LoanTransaction, Role, VerificationStatus } from '../../core/models';
 import { AlertComponent } from '../../shared/alert/alert.component';
+import { CustomSelectComponent, SelectOption } from '../../shared/custom-select/custom-select.component';
 import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.component';
+import { focusFirstInvalid } from '../../shared/utils/form-focus';
 
 export interface MemberDirectoryRow {
   id: string;
@@ -32,7 +36,7 @@ export interface MemberDirectoryRow {
 @Component({
   selector: 'app-member-detail-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AlertComponent, StatusBadgeComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AlertComponent, CustomSelectComponent, StatusBadgeComponent],
   template: `
     <div *ngIf="member" class="modal-backdrop" (click)="onBackdropClick($event)">
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="member-edit-modal-title">
@@ -95,10 +99,14 @@ export interface MemberDirectoryRow {
             <div *ngIf="member.status === 'TERVERIFIKASI'" style="margin-top:1rem">
               <div class="field">
                 <label class="label" for="edit-member-role">Peran di organisasi</label>
-                <select class="form-input" id="edit-member-role" name="role" [(ngModel)]="role">
-                  <option value="ADMIN">Pengurus</option>
-                  <option value="ANGGOTA">Anggota</option>
-                </select>
+                <app-select
+                  id="edit-member-role"
+                  name="role"
+                  [options]="roleOptions"
+                  [invalid]="roleError"
+                  [(ngModel)]="role"
+                  (ngModelChange)="roleError = false; localError = ''"
+                />
                 <p *ngIf="singleAdminAtRisk" class="hint" style="color:var(--color-rose-ink)">
                   Proteksi pengurus tunggal: organisasi harus memiliki minimal satu Pengurus aktif.
                 </p>
@@ -108,13 +116,17 @@ export interface MemberDirectoryRow {
                 <label class="label" for="edit-member-position">Posisi di bagan</label>
                 <input
                   class="form-input"
+                  [class.is-invalid]="!!positionError"
+                  [attr.aria-invalid]="!!positionError"
                   id="edit-member-position"
                   name="position"
                   type="text"
                   maxlength="50"
                   required
                   [(ngModel)]="position"
+                  (ngModelChange)="positionError = ''; localError = ''"
                 />
+                <p *ngIf="positionError" class="error-text">{{ positionError }}</p>
               </div>
             </div>
 
@@ -146,7 +158,8 @@ export interface MemberDirectoryRow {
     </div>
   `
 })
-export class MemberDetailModalComponent implements OnChanges {
+export class MemberDetailModalComponent implements OnChanges, OnDestroy {
+  private readonly hostEl = inject(ElementRef<HTMLElement>);
   @Input() member: MemberDirectoryRow | null = null;
   @Input() memberLoans: LoanTransaction[] = [];
   @Input() verifiedAdminCount = 0;
@@ -158,9 +171,16 @@ export class MemberDetailModalComponent implements OnChanges {
 
   @ViewChild('closeBtn') private closeBtn?: ElementRef<HTMLButtonElement>;
 
+  readonly roleOptions: ReadonlyArray<SelectOption> = [
+    { value: 'ADMIN', label: 'Pengurus' },
+    { value: 'ANGGOTA', label: 'Anggota' }
+  ];
+
   role: Role = 'ANGGOTA';
   position = 'Anggota';
   localError = '';
+  positionError = '';
+  roleError = false;
   private returnFocusEl: HTMLElement | null = null;
 
   get errorText(): string {
@@ -202,10 +222,13 @@ export class MemberDetailModalComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['member']) {
+      document.body.classList.toggle('modal-open', !!this.member);
       if (this.member) {
         this.role = this.member.role;
         this.position = this.member.position || 'Anggota';
         this.localError = '';
+        this.positionError = '';
+        this.roleError = false;
         this.returnFocusEl = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         setTimeout(() => this.closeBtn?.nativeElement.focus());
       } else if (this.returnFocusEl) {
@@ -214,6 +237,10 @@ export class MemberDetailModalComponent implements OnChanges {
         setTimeout(() => el.focus());
       }
     }
+  }
+
+  ngOnDestroy(): void {
+    document.body.classList.remove('modal-open');
   }
 
   @HostListener('document:keydown.escape')
@@ -237,12 +264,15 @@ export class MemberDetailModalComponent implements OnChanges {
   submit(): void {
     if (this.saving) return;
     const trimmedPos = this.position.trim();
-    if (!trimmedPos || trimmedPos.length > 50) {
-      this.localError = 'Posisi di bagan wajib diisi (1–50 karakter).';
-      return;
-    }
-    if (this.singleAdminAtRisk) {
-      this.localError = 'Organisasi harus punya minimal satu Pengurus aktif. Angkat anggota lain terlebih dahulu.';
+    this.positionError =
+      !trimmedPos || trimmedPos.length > 50 ? 'Posisi di bagan wajib diisi (1–50 karakter).' : '';
+    this.roleError = this.singleAdminAtRisk;
+
+    if (this.positionError || this.roleError) {
+      this.localError = this.roleError
+        ? 'Organisasi harus punya minimal satu Pengurus aktif. Angkat anggota lain terlebih dahulu.'
+        : this.positionError;
+      focusFirstInvalid(this.hostEl.nativeElement);
       return;
     }
     this.localError = '';

@@ -1,6 +1,6 @@
-<div class="watermark-box" aria-label="Editor sensor dokumen identitas otomatis">
+<div class="watermark-box" aria-label="Editor watermark dokumen identitas otomatis">
   <!-- Status 1: Dropzone Upload jika belum memilih gambar -->
-  <div *ngIf="!imageLoaded" class="upload-dropzone" (click)="fileInput.click()">
+  <div *ngIf="!imageLoaded" class="upload-dropzone" [class.is-invalid]="invalid" (click)="fileInput.click()">
     <input
       #fileInput
       type="file"
@@ -23,7 +23,7 @@
 
       <div class="protection-pill">
         <app-icon name="shield-check" [size]="15" />
-        <span>Sensor NIK, tanda tangan &amp; grayscale otomatis diterapkan saat diunggah</span>
+        <span>Grayscale &amp; watermark forensik otomatis diterapkan saat diunggah</span>
       </div>
     </div>
   </div>
@@ -39,7 +39,7 @@
       <div class="status-badge-group">
         <span class="badge-protected">
           <app-icon name="shield-check" [size]="16" />
-          <span>Sensor &amp; Watermark Aktif</span>
+          <span>Watermark Forensik Aktif</span>
         </span>
         <span class="badge-gray">Otomatis Grayscale</span>
       </div>
@@ -79,7 +79,7 @@
       </div>
     </div>
 
-    <!-- Canvas Preview (Hasil Dokumen Bersensor) -->
+    <!-- Canvas Preview (Hasil Dokumen Terwatermark) -->
     <div class="canvas-viewport">
       <canvas #editorCanvas class="editor-canvas"></canvas>
     </div>
@@ -87,7 +87,7 @@
     <div class="compliance-note">
       <app-icon name="info" [size]="15" />
       <span>
-        Nomor identitas (NIK) dan tanda tangan telah ditutup demi keamanan data pribadi (UU PDP). Nama dan foto wajah tetap dipertahankan agar pengurus dapat memvalidasi keaslian anggota.
+        Dokumen dikonversi otomatis ke grayscale dan diberi watermark forensik penanggung jawab organisasi agar hanya digunakan untuk verifikasi keanggotaan SARGA (UU PDP).
       </span>
     </div>
   </div>

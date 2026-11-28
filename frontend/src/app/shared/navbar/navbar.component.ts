@@ -1,13 +1,15 @@
-import { Component, inject } from '@angular/core';
+import { Component, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { Membership } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { CustomSelectComponent, SelectOption } from '../custom-select/custom-select.component';
 import { ToastService } from '../toast/toast.service';
 
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterLink, RouterLinkActive, CustomSelectComponent],
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.css']
 })
@@ -57,10 +59,16 @@ export class NavbarComponent {
     return user.fullName.slice(0, 2).toUpperCase();
   }
 
-  onOrganizationChange(event: Event): void {
-    const select = event.currentTarget;
-    if (select instanceof HTMLSelectElement && select.value) {
-      this.authService.setActiveOrg(select.value);
+  orgOptions(memberships?: Membership[]): SelectOption[] {
+    return (memberships || []).map(m => ({
+      value: m.orgId,
+      label: m.organization?.name || 'Organisasi terdaftar'
+    }));
+  }
+
+  onOrganizationSelected(orgId: string): void {
+    if (orgId) {
+      this.authService.setActiveOrg(orgId);
     }
     this.menuOpen = false;
   }
@@ -70,5 +78,10 @@ export class NavbarComponent {
     this.menuOpen = false;
     this.toastService.show('Anda telah keluar dari akun.', 'info');
     this.router.navigate(['/']);
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    this.menuOpen = false;
   }
 }

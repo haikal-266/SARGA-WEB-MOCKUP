@@ -55,6 +55,8 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: clip;
+  max-width: 100%;
 }
 
 body {
@@ -64,7 +66,19 @@ body {
   color: var(--color-ink);
   font-family: var(--font-body);
   line-height: 1.5;
-  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+img,
+canvas,
+svg {
+  max-width: 100%;
 }
 
 a {

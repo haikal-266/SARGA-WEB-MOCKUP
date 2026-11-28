@@ -36,6 +36,7 @@ export interface Organization {
   address: string;
   contact: string;
   inviteCode: string;
+  inviteExpires?: string | null;
   status: string;
 }
 
@@ -137,7 +138,6 @@ export interface WatermarkedDocumentOutput {
   documentType: string;
   watermarkSummary: string;
   fingerprint: string;
-  redactionCount: number;
 }
 
 export interface StructureMember {

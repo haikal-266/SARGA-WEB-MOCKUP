@@ -6,12 +6,15 @@ import {
   HostListener,
   Input,
   OnChanges,
+  OnDestroy,
   Output,
   SimpleChanges,
-  ViewChild
+  ViewChild,
+  inject
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AlertComponent } from '../../shared/alert/alert.component';
+import { focusFirstInvalid } from '../../shared/utils/form-focus';
 
 @Component({
   selector: 'app-reject-reason-modal',
@@ -44,13 +47,17 @@ import { AlertComponent } from '../../shared/alert/alert.component';
               <textarea
                 #reasonBox
                 class="form-input"
+                [class.is-invalid]="!!errorText"
+                [attr.aria-invalid]="!!errorText"
                 id="verification-reject-reason"
                 name="reason"
                 rows="4"
                 required
                 [placeholder]="placeholder"
                 [(ngModel)]="reason"
+                (ngModelChange)="localError = ''"
               ></textarea>
+              <p *ngIf="errorText" class="error-text">{{ errorText }}</p>
             </div>
           </div>
 
@@ -65,7 +72,8 @@ import { AlertComponent } from '../../shared/alert/alert.component';
     </div>
   `
 })
-export class RejectReasonModalComponent implements OnChanges {
+export class RejectReasonModalComponent implements OnChanges, OnDestroy {
+  private readonly hostEl = inject(ElementRef<HTMLElement>);
   @Input() open = false;
   @Input() title = 'Tolak pengajuan';
   @Input() description = '';
@@ -89,6 +97,7 @@ export class RejectReasonModalComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['open']) {
+      document.body.classList.toggle('modal-open', this.open);
       if (this.open) {
         this.reason = '';
         this.localError = '';
@@ -100,6 +109,10 @@ export class RejectReasonModalComponent implements OnChanges {
         setTimeout(() => el.focus());
       }
     }
+  }
+
+  ngOnDestroy(): void {
+    document.body.classList.remove('modal-open');
   }
 
   @HostListener('document:keydown.escape')
@@ -125,6 +138,7 @@ export class RejectReasonModalComponent implements OnChanges {
     const trimmed = this.reason.trim();
     if (trimmed.length < 5) {
       this.localError = 'Alasan penolakan minimal 5 karakter.';
+      focusFirstInvalid(this.hostEl.nativeElement);
       return;
     }
     this.localError = '';

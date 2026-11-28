@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, ElementRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Item } from '../../core/models';
@@ -8,6 +8,9 @@ import { AuthService } from '../../core/services/auth.service';
 import { ITEM_IMAGE_OPTIONS, ItemService } from '../../core/services/item.service';
 import { MembershipService } from '../../core/services/membership.service';
 import { AlertComponent } from '../../shared/alert/alert.component';
+import { CustomSelectComponent, SelectOption } from '../../shared/custom-select/custom-select.component';
+import { FilePickerComponent } from '../../shared/file-picker/file-picker.component';
+import { focusFirstInvalid } from '../../shared/utils/form-focus';
 
 interface ItemCreateForm {
   name: string;
@@ -23,7 +26,7 @@ interface ItemCreateForm {
 @Component({
   selector: 'app-item-create',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AlertComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AlertComponent, CustomSelectComponent, FilePickerComponent],
   template: `
     <div class="page page-mid">
       <div class="page-head split">
@@ -73,8 +76,12 @@ interface ItemCreateForm {
               class="form-input"
               placeholder='Contoh: "Bor listrik impact 13 mm"'
               required
+              [class.is-invalid]="!!fieldErrors.name"
+              [attr.aria-invalid]="fieldErrors.name ? 'true' : null"
               [(ngModel)]="form.name"
+              (ngModelChange)="fieldErrors.name = ''; errorMessage = ''"
             />
+            <p *ngIf="fieldErrors.name" class="error-text" role="alert">{{ fieldErrors.name }}</p>
           </div>
 
           <div class="form-grid two">
@@ -90,8 +97,12 @@ interface ItemCreateForm {
                 step="1"
                 inputmode="numeric"
                 required
+                [class.is-invalid]="!!fieldErrors.maxDays"
+                [attr.aria-invalid]="fieldErrors.maxDays ? 'true' : null"
                 [(ngModel)]="form.maxDays"
+                (ngModelChange)="fieldErrors.maxDays = ''; errorMessage = ''"
               />
+              <p *ngIf="fieldErrors.maxDays" class="error-text" role="alert">{{ fieldErrors.maxDays }}</p>
             </div>
 
             <div class="field">
@@ -102,8 +113,12 @@ interface ItemCreateForm {
                 type="text"
                 class="form-input"
                 required
+                [class.is-invalid]="!!fieldErrors.location"
+                [attr.aria-invalid]="fieldErrors.location ? 'true' : null"
                 [(ngModel)]="form.location"
+                (ngModelChange)="fieldErrors.location = ''; errorMessage = ''"
               />
+              <p *ngIf="fieldErrors.location" class="error-text" role="alert">{{ fieldErrors.location }}</p>
             </div>
           </div>
 
@@ -115,8 +130,12 @@ interface ItemCreateForm {
               class="form-input"
               rows="3"
               required
+              [class.is-invalid]="!!fieldErrors.description"
+              [attr.aria-invalid]="fieldErrors.description ? 'true' : null"
               [(ngModel)]="form.description"
+              (ngModelChange)="fieldErrors.description = ''; errorMessage = ''"
             ></textarea>
+            <p *ngIf="fieldErrors.description" class="error-text" role="alert">{{ fieldErrors.description }}</p>
           </div>
 
           <div class="field">
@@ -140,44 +159,52 @@ interface ItemCreateForm {
               rows="3"
               maxlength="250"
               required
+              [class.is-invalid]="!!fieldErrors.instructions"
+              [attr.aria-invalid]="fieldErrors.instructions ? 'true' : null"
               [(ngModel)]="form.instructions"
+              (ngModelChange)="fieldErrors.instructions = ''; errorMessage = ''"
             ></textarea>
+            <p *ngIf="fieldErrors.instructions" class="error-text" role="alert">{{ fieldErrors.instructions }}</p>
             <p class="hint">{{ form.instructions.length }}/250 karakter</p>
           </div>
 
           <div class="form-grid two">
             <div class="field">
               <label class="label" for="item-image-file">Unggah foto barang (JPG/PNG, maks. 5 MB)</label>
-              <input
+              <app-file-picker
                 id="item-image-file"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                class="form-input"
-                style="padding:.45rem .65rem"
-                (change)="onFileSelected($event)"
+                placeholder="Belum ada foto dipilih"
+                [fileName]="selectedFile?.name || ''"
+                (fileSelected)="onFilePicked($event)"
               />
-              <p class="hint" *ngIf="selectedFile">{{ selectedFile.name }}</p>
             </div>
 
             <div class="field">
               <label class="label" for="item-image-preset">Atau pilih foto contoh</label>
-              <select
+              <app-select
                 id="item-image-preset"
                 name="imagePreset"
-                class="form-input"
+                [options]="imageSelectOptions"
                 [(ngModel)]="form.imagePreset"
-              >
-                <option *ngFor="let opt of imageOptions" [value]="opt[0]">{{ opt[1] }}</option>
-              </select>
+              />
             </div>
           </div>
 
-          <label class="safety-check">
-            <input name="isSafeAndReady" type="checkbox" required [(ngModel)]="form.isSafeAndReady" />
+          <label class="safety-check" [class.is-invalid]="!!fieldErrors.isSafeAndReady">
+            <input
+              name="isSafeAndReady"
+              type="checkbox"
+              required
+              [class.is-invalid]="!!fieldErrors.isSafeAndReady"
+              [attr.aria-invalid]="fieldErrors.isSafeAndReady ? 'true' : null"
+              [(ngModel)]="form.isSafeAndReady"
+              (ngModelChange)="fieldErrors.isSafeAndReady = ''; errorMessage = ''"
+            />
             <span>Saya menyatakan barang aman dan layak digunakan.</span>
           </label>
+          <p *ngIf="fieldErrors.isSafeAndReady" class="error-text" role="alert">{{ fieldErrors.isSafeAndReady }}</p>
 
-          <button type="submit" class="btn-primary form-submit" [disabled]="saving">
+          <button type="submit" class="btn-primary btn-block form-submit" [disabled]="saving">
             {{ saving ? 'Menyimpan barang...' : 'Simpan ke katalog' }}
           </button>
         </form>
@@ -199,20 +226,18 @@ interface ItemCreateForm {
       color: var(--color-ink);
       cursor: pointer;
     }
-    .safety-check input[type='checkbox'] {
-      width: 1.2rem;
-      height: 1.2rem;
-      flex: 0 0 auto;
-      accent-color: var(--color-accent);
-    }
   `]
 })
 export class ItemCreateComponent {
   private readonly authService = inject(AuthService);
   private readonly itemService = inject(ItemService);
   private readonly membershipService = inject(MembershipService);
+  private readonly hostEl = inject(ElementRef<HTMLElement>);
 
-  readonly imageOptions = ITEM_IMAGE_OPTIONS;
+  readonly imageSelectOptions: ReadonlyArray<SelectOption> = ITEM_IMAGE_OPTIONS.map(([value, label]) => ({
+    value,
+    label
+  }));
 
   form: ItemCreateForm = {
     name: '',
@@ -229,6 +254,14 @@ export class ItemCreateComponent {
   errorMessage = '';
   successMessage = '';
   createdItem: Item | null = null;
+  fieldErrors = {
+    name: '',
+    maxDays: '',
+    location: '',
+    description: '',
+    instructions: '',
+    isSafeAndReady: ''
+  };
 
   get canCreateItems(): boolean {
     return this.authService.activeMembership()?.status === 'TERVERIFIKASI';
@@ -242,21 +275,15 @@ export class ItemCreateComponent {
     return 'Pilih organisasi aktif yang keanggotaannya sudah terverifikasi.';
   }
 
-  onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
+  onFilePicked(file: File): void {
     this.selectedFile = null;
-    if (!file) return;
-
     const validMime = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
     if (!validMime) {
       this.errorMessage = 'Format foto harus JPG, PNG, atau WebP.';
-      input.value = '';
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
       this.errorMessage = 'Ukuran foto maksimal 5 MB.';
-      input.value = '';
       return;
     }
     this.errorMessage = '';
@@ -273,26 +300,35 @@ export class ItemCreateComponent {
     }
 
     const maxDays = Number(this.form.maxDays);
-    if (!Number.isInteger(maxDays) || maxDays < 1 || maxDays > 14) {
-      this.errorMessage = 'Maksimal masa pinjam harus bilangan bulat antara 1 sampai 14 hari.';
-      return;
-    }
-
     const name = this.form.name.trim();
     const description = this.form.description.trim();
     const location = this.form.location.trim();
     const instructions = this.form.instructions.trim();
 
-    if (!name || !description || !location || !instructions) {
-      this.errorMessage = 'Lengkapi seluruh field wajib sebelum menyimpan barang.';
-      return;
-    }
-    if (instructions.length > 250) {
-      this.errorMessage = 'Catatan kondisi dan instruksi pengambilan maksimal 250 karakter.';
-      return;
-    }
-    if (!this.form.isSafeAndReady) {
-      this.errorMessage = 'Pernyataan barang aman dan layak digunakan harus disetujui.';
+    this.fieldErrors = {
+      name: name ? '' : 'Nama barang wajib diisi.',
+      maxDays: Number.isInteger(maxDays) && maxDays >= 1 && maxDays <= 14 ? '' : 'Isi bilangan bulat antara 1 sampai 14 hari.',
+      location: location ? '' : 'Lokasi pengambilan wajib diisi.',
+      description: description ? '' : 'Deskripsi singkat wajib diisi.',
+      instructions:
+        !instructions
+          ? 'Catatan kondisi & petunjuk penggunaan wajib diisi.'
+          : instructions.length > 250
+            ? 'Maksimal 250 karakter.'
+            : '',
+      isSafeAndReady: this.form.isSafeAndReady ? '' : 'Centang pernyataan barang aman digunakan.'
+    };
+
+    if (
+      this.fieldErrors.name ||
+      this.fieldErrors.maxDays ||
+      this.fieldErrors.location ||
+      this.fieldErrors.description ||
+      this.fieldErrors.instructions ||
+      this.fieldErrors.isSafeAndReady
+    ) {
+      this.errorMessage = 'Lengkapi seluruh field wajib yang ditandai merah sebelum menyimpan barang.';
+      focusFirstInvalid(this.hostEl.nativeElement);
       return;
     }
 

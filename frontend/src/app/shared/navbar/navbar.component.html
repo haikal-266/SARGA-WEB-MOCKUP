@@ -17,17 +17,15 @@
         <ng-container *ngIf="currentUser$ | async as user; else guestActions">
           <div class="org-switch" *ngIf="user.memberships && user.memberships.length > 0">
             <label class="sr-only" for="org-picker">Organisasi aktif</label>
-            <select
-              class="select-inline"
+            <app-select
               id="org-picker"
+              variant="inline"
+              placeholder="Pilih organisasi"
+              ariaLabel="Organisasi aktif"
+              [options]="orgOptions(user.memberships)"
               [value]="activeOrgId"
-              (change)="onOrganizationChange($event)"
-            >
-              <option value="" disabled *ngIf="!activeOrgId">Pilih organisasi</option>
-              <option *ngFor="let m of user.memberships" [value]="m.orgId">
-                {{ m.organization?.name || 'Organisasi ' + m.orgId }}
-              </option>
-            </select>
+              (valueChange)="onOrganizationSelected($event)"
+            />
           </div>
 
           <a class="user-chip" routerLink="/profil" (click)="menuOpen = false" aria-label="Profil akun">
@@ -117,28 +115,30 @@
   <div class="mobile-drawer wrap" id="mobile-menu-drawer" [hidden]="!menuOpen">
     <div class="drawer-section">
       <p class="drawer-title">Navigasi</p>
-      <a class="drawer-link" routerLink="/beranda" (click)="menuOpen = false">Beranda</a>
-      <a class="drawer-link" routerLink="/katalog" (click)="menuOpen = false">Katalog</a>
-      <a class="drawer-link" *ngIf="isVerified" routerLink="/pinjaman-saya" (click)="menuOpen = false">Pinjaman saya</a>
-      <a class="drawer-link" *ngIf="isVerified" routerLink="/barang-saya" (click)="menuOpen = false">Barang saya</a>
-      <a class="drawer-link" *ngIf="isVerified" routerLink="/struktur" (click)="menuOpen = false">Struktur</a>
-      <a class="drawer-link" *ngIf="isVerified" routerLink="/pengumuman" (click)="menuOpen = false">Pengumuman</a>
-      <a class="drawer-link" *ngIf="isAdmin" routerLink="/admin-monitoring" (click)="menuOpen = false">Pengurus</a>
-      <a class="drawer-link" *ngIf="isPlatformAdmin" routerLink="/admin-direktori" (click)="menuOpen = false">Direktori</a>
+      <a class="drawer-link" routerLink="/beranda" routerLinkActive="drawer-link-active" [routerLinkActiveOptions]="{ exact: true }" (click)="menuOpen = false">Beranda</a>
+      <a class="drawer-link" routerLink="/katalog" routerLinkActive="drawer-link-active" (click)="menuOpen = false">Katalog</a>
+      <a class="drawer-link" *ngIf="isVerified" routerLink="/pinjaman-saya" routerLinkActive="drawer-link-active" (click)="menuOpen = false">Pinjaman saya</a>
+      <a class="drawer-link" *ngIf="isVerified" routerLink="/barang-saya" routerLinkActive="drawer-link-active" (click)="menuOpen = false">Barang saya</a>
+      <a class="drawer-link" *ngIf="isVerified" routerLink="/struktur" routerLinkActive="drawer-link-active" (click)="menuOpen = false">Struktur</a>
+      <a class="drawer-link" *ngIf="isVerified" routerLink="/pengumuman" routerLinkActive="drawer-link-active" (click)="menuOpen = false">Pengumuman</a>
+      <a class="drawer-link" *ngIf="isAdmin" routerLink="/admin-monitoring" routerLinkActive="drawer-link-active" (click)="menuOpen = false">Pengurus</a>
+      <a class="drawer-link" *ngIf="isPlatformAdmin" routerLink="/admin-direktori" routerLinkActive="drawer-link-active" (click)="menuOpen = false">Direktori</a>
     </div>
 
     <ng-container *ngIf="currentUser$ | async as user; else guestDrawer">
       <div class="drawer-section" *ngIf="user.memberships && user.memberships.length > 0">
         <p class="drawer-title">Organisasi aktif</p>
-        <select
-          class="select-inline select-block"
+        <label class="sr-only" for="mobile-org-picker">Organisasi aktif</label>
+        <app-select
+          id="mobile-org-picker"
+          variant="inline"
+          [block]="true"
+          placeholder="Pilih organisasi"
+          ariaLabel="Organisasi aktif"
+          [options]="orgOptions(user.memberships)"
           [value]="activeOrgId"
-          (change)="onOrganizationChange($event)"
-        >
-          <option *ngFor="let m of user.memberships" [value]="m.orgId">
-            {{ m.organization?.name || 'Organisasi ' + m.orgId }}
-          </option>
-        </select>
+          (valueChange)="onOrganizationSelected($event)"
+        />
       </div>
 
       <div class="drawer-section">

@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, inject, computed, signal } from '@angular
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { ItemService } from '../../core/services/item.service';
+import { ItemService, normalizeItemImagePath } from '../../core/services/item.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Item } from '../../core/models';
 
@@ -347,7 +347,16 @@ export class HomeComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    this.loadAvailableItems();
+    this.subscription.add(
+      this.authService.currentUser$.subscribe(() => {
+        if (this.activeMembership()?.status === 'TERVERIFIKASI') {
+          this.loadAvailableItems();
+        } else {
+          this.items.set([]);
+          this.loading = false;
+        }
+      })
+    );
   }
 
   ngOnDestroy(): void {
@@ -371,11 +380,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   imageSource(item: Item): string {
-    const src = item.imageUrl || item.image;
-    if (!src || src === 'assets/placeholder-item.svg') return '/img/placeholder-item.svg';
-    if (src.startsWith('assets/')) return '/' + src.slice('assets/'.length);
-    if (src.startsWith('img/')) return '/' + src;
-    return src;
+    return normalizeItemImagePath(item.imageUrl || item.image);
   }
 
   handleImageError(event: Event): void {

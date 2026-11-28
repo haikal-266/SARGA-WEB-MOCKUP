@@ -1,16 +1,15 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, inject } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { AlertComponent } from '../../shared/alert/alert.component';
-import { OtpModalComponent, OtpSubmitPayload } from '../../shared/otp-modal/otp-modal.component';
-import { ToastService } from '../../shared/toast/toast.service';
+import { focusFirstInvalid } from '../../shared/utils/form-focus';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AlertComponent, OtpModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AlertComponent],
   template: `
     <div class="auth-wrapper">
       <div class="auth-card">
@@ -18,7 +17,7 @@ import { ToastService } from '../../shared/toast/toast.service';
         <h1 class="auth-title">Masuk ke akun SARGA</h1>
         <p class="auth-subtitle">Gunakan nomor WhatsApp yang tercatat pada data anggota organisasi.</p>
 
-        <form (ngSubmit)="onSubmit()" class="auth-form">
+        <form (ngSubmit)="onSubmit()" class="auth-form" novalidate>
           <app-alert
             *ngIf="errorMessage"
             kind="error"
@@ -34,11 +33,15 @@ import { ToastService } from '../../shared/toast/toast.service';
               inputmode="tel"
               autocomplete="tel"
               [(ngModel)]="waNumber"
+              (ngModelChange)="fieldErrors.waNumber = ''; errorMessage = ''"
               name="waNumber"
               required
               placeholder="Contoh: 081234567890"
-              class="form-control"
+              class="form-input"
+              [class.is-invalid]="!!fieldErrors.waNumber"
+              [attr.aria-invalid]="fieldErrors.waNumber ? 'true' : null"
             />
+            <p *ngIf="fieldErrors.waNumber" class="error-text" role="alert">{{ fieldErrors.waNumber }}</p>
           </div>
 
           <div class="form-group">
@@ -57,30 +60,28 @@ import { ToastService } from '../../shared/toast/toast.service';
               type="password"
               autocomplete="current-password"
               [(ngModel)]="password"
+              (ngModelChange)="fieldErrors.password = ''; errorMessage = ''"
               name="password"
               required
               placeholder="••••••••"
-              class="form-control"
+              class="form-input"
+              [class.is-invalid]="!!fieldErrors.password"
+              [attr.aria-invalid]="fieldErrors.password ? 'true' : null"
             />
+            <p *ngIf="fieldErrors.password" class="error-text" role="alert">{{ fieldErrors.password }}</p>
           </div>
 
-          <button type="submit" [disabled]="loading" class="btn btn-primary btn-block">
+          <button type="submit" [disabled]="loading" class="btn-primary btn-block">
             {{ loading ? 'Memproses...' : 'Masuk' }}
-          </button>
-          <button
-            type="button"
-            (click)="openOtpModal()"
-            class="btn btn-secondary btn-block otp-trigger"
-          >
-            Masuk dengan kode OTP
           </button>
         </form>
 
         <p class="auth-nav-note">
           Belum punya akun?
           <a routerLink="/auth/register" class="link">Daftar dengan kode undangan pengurus</a>.
-          Sudah mendaftar?
-          <a routerLink="/status-akun" class="link">Lihat status akun</a>.
+          <span class="note-break">
+            Sudah mendaftar? <a routerLink="/status-akun" class="link">Lihat status akun</a>.
+          </span>
         </p>
       </div>
     </div>
@@ -108,32 +109,28 @@ import { ToastService } from '../../shared/toast/toast.service';
         </div>
       </div>
     </div>
-
-    <app-otp-modal
-      [open]="otpModalOpen"
-      [initialWa]="waNumber || '081298765432'"
-      [serverMessage]="otpServerMessage"
-      [serverMessageKind]="otpServerKind"
-      (closed)="closeOtpModal()"
-      (otpSubmit)="onOtpSubmit($event)"
-    />
   `,
   styles: [`
     .auth-wrapper {
-      min-height: calc(100vh - 180px);
+      min-height: calc(100dvh - 180px);
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 2rem 1rem;
+      padding: 1.5rem 0.25rem;
     }
     .auth-card {
       background: #ffffff;
       border: 1px solid var(--color-rule);
       border-radius: var(--radius-card);
-      padding: 2rem 1.75rem;
+      padding: 1.5rem 1.25rem;
       width: 100%;
       max-width: 440px;
       box-shadow: var(--shadow-subtle);
+    }
+    @media (min-width: 480px) {
+      .auth-card {
+        padding: 2rem 1.75rem;
+      }
     }
     .brand-badge {
       display: inline-block;
@@ -147,7 +144,7 @@ import { ToastService } from '../../shared/toast/toast.service';
       margin-bottom: 1rem;
     }
     .auth-title {
-      font-size: 1.5rem;
+      font-size: clamp(1.35rem, 4vw, 1.55rem);
       font-weight: 700;
       color: var(--color-ink);
       margin: 0 0 0.25rem 0;
@@ -158,22 +155,23 @@ import { ToastService } from '../../shared/toast/toast.service';
       margin: 0 0 1.5rem 0;
     }
     .form-group {
-      margin-bottom: 1.25rem;
+      margin-bottom: 1.15rem;
     }
     .label-row {
       display: flex;
-      align-items: baseline;
+      flex-wrap: wrap;
+      align-items: center;
       justify-content: space-between;
-      gap: 0.75rem;
-      margin-bottom: 0.35rem;
+      gap: 0.5rem;
+      margin-bottom: 0.25rem;
     }
     .forgot-link {
       background: none;
       border: 0;
-      padding: 0.35rem 0;
-      min-height: 36px;
+      padding: 0.5rem 0;
+      min-height: 44px;
       color: var(--color-accent-soft-ink);
-      font-size: 0.82rem;
+      font-size: 0.84rem;
       font-weight: 600;
       text-decoration: underline;
     }
@@ -183,55 +181,40 @@ import { ToastService } from '../../shared/toast/toast.service';
     }
     .form-group label {
       display: block;
-      font-size: 0.85rem;
+      font-size: 0.88rem;
       font-weight: 600;
       margin-bottom: 0.35rem;
       color: var(--color-ink-2);
     }
-    .form-control {
-      width: 100%;
-      min-height: 44px;
-      padding: 0.7rem 0.9rem;
-      border: 1px solid var(--color-muted-light);
-      border-radius: var(--radius-input);
-      font-size: 0.95rem;
-    }
-    .form-control:focus-visible,
-    .forgot-link:focus-visible,
-    .hint-account:focus-visible {
-      outline: 3px solid var(--color-focus);
-      outline-offset: 2px;
-    }
-    .register-hint {
-      margin: 1rem 0 0;
-      color: var(--color-muted);
-      font-size: 0.84rem;
-    }
-    .otp-trigger {
-      margin-top: 0.55rem;
-    }
     .auth-nav-note {
-      margin-top: 1rem;
-      font-size: 0.82rem;
+      margin: 1.15rem 0 0;
+      font-size: 0.84rem;
       color: var(--color-muted);
       text-align: center;
+      line-height: 1.55;
+    }
+    .note-break {
+      display: block;
+      margin-top: 0.25rem;
     }
     .auth-nav-note .link {
-      color: var(--color-accent);
+      color: var(--color-accent-soft-ink);
+      font-weight: 600;
       text-decoration: underline;
     }
   `]
 })
-export class LoginComponent {
+export class LoginComponent implements OnDestroy {
   private authService = inject(AuthService);
   private router = inject(Router);
-  private toastService = inject(ToastService);
+  private hostEl = inject(ElementRef<HTMLElement>);
   private returnFocusEl: HTMLElement | null = null;
 
   waNumber = '';
   password = '';
   loading = false;
   errorMessage = '';
+  fieldErrors = { waNumber: '', password: '' };
   forgotModalOpen = false;
 
   @HostListener('document:keydown.escape')
@@ -241,13 +224,18 @@ export class LoginComponent {
     }
   }
 
-  otpModalOpen = false;
-  otpServerMessage = '';
-  otpServerKind: 'info' | 'warning' | 'error' = 'info';
+  ngOnDestroy(): void {
+    document.body.classList.remove('modal-open');
+  }
 
   onSubmit(): void {
-    if (!this.waNumber || !this.password) {
+    this.fieldErrors = {
+      waNumber: this.waNumber.trim() ? '' : 'Nomor WhatsApp wajib diisi.',
+      password: this.password ? '' : 'Kata sandi wajib diisi.'
+    };
+    if (this.fieldErrors.waNumber || this.fieldErrors.password) {
       this.errorMessage = 'Nomor WhatsApp dan kata sandi wajib diisi.';
+      focusFirstInvalid(this.hostEl.nativeElement);
       return;
     }
 
@@ -269,6 +257,7 @@ export class LoginComponent {
   openForgotModal(event: Event): void {
     this.returnFocusEl = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
     this.forgotModalOpen = true;
+    document.body.classList.add('modal-open');
   }
 
   onBackdropClick(event: MouseEvent): void {
@@ -279,30 +268,9 @@ export class LoginComponent {
 
   closeForgotModal(): void {
     this.forgotModalOpen = false;
+    document.body.classList.remove('modal-open');
     const el = this.returnFocusEl;
     this.returnFocusEl = null;
     if (el) setTimeout(() => el.focus());
-  }
-
-  openOtpModal(): void {
-    this.otpServerMessage = '';
-    this.otpServerKind = 'info';
-    this.otpModalOpen = true;
-  }
-
-  closeOtpModal(): void {
-    this.otpModalOpen = false;
-    this.otpServerMessage = '';
-  }
-
-  onOtpSubmit(payload: OtpSubmitPayload): void {
-    this.waNumber = payload.waNumber;
-    this.otpServerKind = 'warning';
-    this.otpServerMessage =
-      'Layanan OTP WhatsApp di server segera hadir (API belum tersedia). Silakan gunakan kata sandi pada formulir Masuk.';
-    this.toastService.show(
-      'Layanan OTP WhatsApp segera hadir. Gunakan kata sandi untuk masuk.',
-      'info'
-    );
   }
 }

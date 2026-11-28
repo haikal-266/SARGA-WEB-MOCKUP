@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -7,7 +7,9 @@ import { AuthService } from '../../core/services/auth.service';
 import { OrganizationService } from '../../core/services/organization.service';
 import { Role, StructureMember } from '../../core/models';
 import { AlertComponent } from '../../shared/alert/alert.component';
+import { CustomSelectComponent, SelectOption } from '../../shared/custom-select/custom-select.component';
 import { ToastService } from '../../shared/toast/toast.service';
+import { focusFirstInvalid } from '../../shared/utils/form-focus';
 
 interface MatrixRow {
   member: StructureMember;
@@ -26,7 +28,7 @@ interface DivisionGroup {
 @Component({
   selector: 'app-structure-matrix',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AlertComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AlertComponent, CustomSelectComponent],
   styleUrls: ['../../shared/styles/support-page.css'],
   styles: [`
     .group-title { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin: 0 0 0.25rem; font-size: 1rem; font-weight: 700; }
@@ -37,6 +39,9 @@ interface DivisionGroup {
     .row-card.changed { background: var(--color-accent-soft); margin: 0 -0.75rem; padding-left: 0.75rem; padding-right: 0.75rem; border-radius: 8px; }
     .row-card .field { margin-bottom: 0; }
     .save-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-top: 1.25rem; }
+    @media (max-width: 480px) {
+      .save-bar .btn { width: 100%; }
+    }
     .hint { font-size: 0.82rem; color: var(--color-muted); margin: 0.75rem 0 0; }
   `],
   template: `
@@ -100,10 +105,12 @@ interface DivisionGroup {
                 </div>
                 <div class="field">
                   <label [for]="'role-' + row.member.id">Peran</label>
-                  <select [id]="'role-' + row.member.id" [name]="'role-' + row.member.id" [(ngModel)]="row.role">
-                    <option value="ADMIN">Pengurus</option>
-                    <option value="ANGGOTA">Anggota</option>
-                  </select>
+                  <app-select
+                    [id]="'role-' + row.member.id"
+                    [name]="'role-' + row.member.id"
+                    [options]="roleOptions"
+                    [(ngModel)]="row.role"
+                  />
                 </div>
               </div>
             </div>
@@ -131,9 +138,15 @@ export class StructureMatrixComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly orgService = inject(OrganizationService);
   private readonly toast = inject(ToastService);
+  private readonly hostEl = inject(ElementRef<HTMLElement>);
 
   rows: MatrixRow[] = [];
   groups: DivisionGroup[] = [];
+  readonly roleOptions: ReadonlyArray<SelectOption> = [
+    { value: 'ADMIN', label: 'Pengurus' },
+    { value: 'ANGGOTA', label: 'Anggota' }
+  ];
+
   orgName = '';
   loading = true;
   saving = false;
@@ -231,6 +244,7 @@ export class StructureMatrixComponent implements OnInit, OnDestroy {
 
     if (this.rows.some((r) => this.positionError(r))) {
       this.formError = 'Periksa kembali kolom jabatan yang bertanda kesalahan.';
+      focusFirstInvalid(this.hostEl.nativeElement);
       return;
     }
     if (!this.rows.some((r) => r.role === 'ADMIN')) {

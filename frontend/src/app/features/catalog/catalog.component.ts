@@ -145,7 +145,7 @@ import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.com
     }
     .item-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
       gap: 1.25rem;
     }
     .item-card {
@@ -155,6 +155,8 @@ import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.com
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      min-width: 0;
+      overflow-wrap: anywhere;
       transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
     .item-card:hover {
@@ -211,17 +213,22 @@ import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.com
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 0.75rem;
       border-top: 1px solid var(--color-rule-2);
       padding-top: 0.75rem;
     }
     .item-location {
       font-size: 0.8rem;
       color: var(--color-muted);
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
     .detail-link,
     .login-link {
       display: inline-flex;
       align-items: center;
+      flex-shrink: 0;
+      white-space: nowrap;
       min-height: 44px;
       color: var(--color-accent);
       font-weight: 600;

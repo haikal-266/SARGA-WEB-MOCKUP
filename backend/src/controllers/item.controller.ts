@@ -83,6 +83,12 @@ export const createItem = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
+    const parsedMaxDays = Number(maxDays);
+    if (!Number.isInteger(parsedMaxDays) || parsedMaxDays < 1 || parsedMaxDays > 14) {
+      res.status(400).json({ success: false, message: 'Maksimal masa pinjam harus bilangan bulat 1 hingga 14 hari.' });
+      return;
+    }
+
     // Auto-generate code ITM-xxx
     const count = await prisma.item.count({ where: { orgId } });
     const code = `ITM-${String(count + 1).padStart(3, '0')}`;

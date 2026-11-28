@@ -1,18 +1,20 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, ElementRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { Role } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { MembershipService } from '../../core/services/membership.service';
 import { AlertComponent } from '../../shared/alert/alert.component';
+import { CustomSelectComponent, SelectOption } from '../../shared/custom-select/custom-select.component';
 import { ToastService } from '../../shared/toast/toast.service';
+import { focusFirstInvalid } from '../../shared/utils/form-focus';
 import { AdminNavComponent } from './admin-nav.component';
 
 @Component({
   selector: 'app-member-add',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AlertComponent, AdminNavComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AlertComponent, CustomSelectComponent, AdminNavComponent],
   template: `
     <div class="page page-mid">
       <ng-container *ngIf="waitingAuth">
@@ -55,13 +57,6 @@ import { AdminNavComponent } from './admin-nav.component';
         <app-admin-nav active="tambah-anggota" />
 
         <app-alert
-          kind="info"
-          title="Penyimpanan anggota manual di peramban"
-          message="Endpoint server untuk menambahkan anggota manual tanpa registrasi mandiri (POST /api/v1/memberships) belum tersedia saat ini. Anggota yang ditambahkan di sini disimpan sementara di daftar anggota lokal organisasi ini pada peramban."
-          style="display:block;margin-bottom:1rem"
-        />
-
-        <app-alert
           *ngIf="errorMessage"
           kind="error"
           title="Gagal menambahkan anggota"
@@ -76,26 +71,36 @@ import { AdminNavComponent } from './admin-nav.component';
                 <label class="label" for="add-member-name">Nama lengkap</label>
                 <input
                   class="form-input"
+                  [class.is-invalid]="!!fieldErrors.fullName"
+                  [attr.aria-invalid]="!!fieldErrors.fullName"
                   id="add-member-name"
                   name="fullName"
                   type="text"
+                  autocomplete="name"
                   required
                   [(ngModel)]="form.fullName"
+                  (ngModelChange)="fieldErrors.fullName = ''"
                 />
+                <p *ngIf="fieldErrors.fullName" class="error-text">{{ fieldErrors.fullName }}</p>
               </div>
 
               <div class="field">
                 <label class="label" for="add-member-wa">Nomor WhatsApp</label>
                 <input
                   class="form-input"
+                  [class.is-invalid]="!!fieldErrors.waNumber"
+                  [attr.aria-invalid]="!!fieldErrors.waNumber"
                   id="add-member-wa"
                   name="waNumber"
                   type="tel"
                   inputmode="tel"
+                  autocomplete="tel"
                   placeholder="081234567890"
                   required
                   [(ngModel)]="form.waNumber"
+                  (ngModelChange)="fieldErrors.waNumber = ''"
                 />
+                <p *ngIf="fieldErrors.waNumber" class="error-text">{{ fieldErrors.waNumber }}</p>
                 <p class="hint">Gunakan format nomor WhatsApp Indonesia yang valid (misal 0812...).</p>
               </div>
 
@@ -106,6 +111,7 @@ import { AdminNavComponent } from './admin-nav.component';
                   id="add-member-address"
                   name="address"
                   type="text"
+                  autocomplete="street-address"
                   [(ngModel)]="form.address"
                 />
               </div>
@@ -113,22 +119,28 @@ import { AdminNavComponent } from './admin-nav.component';
               <div class="form-grid two">
                 <div class="field">
                   <label class="label" for="add-member-role">Peran</label>
-                  <select class="form-input" id="add-member-role" name="role" [(ngModel)]="form.role">
-                    <option value="ANGGOTA">Anggota</option>
-                    <option value="ADMIN">Pengurus</option>
-                  </select>
+                  <app-select
+                    id="add-member-role"
+                    name="role"
+                    [options]="roleOptions"
+                    [(ngModel)]="form.role"
+                  />
                 </div>
 
                 <div class="field">
                   <label class="label" for="add-member-position">Posisi</label>
                   <input
                     class="form-input"
+                    [class.is-invalid]="!!fieldErrors.position"
+                    [attr.aria-invalid]="!!fieldErrors.position"
                     id="add-member-position"
                     name="position"
                     type="text"
                     required
                     [(ngModel)]="form.position"
+                    (ngModelChange)="fieldErrors.position = ''"
                   />
+                  <p *ngIf="fieldErrors.position" class="error-text">{{ fieldErrors.position }}</p>
                 </div>
               </div>
 
@@ -139,16 +151,14 @@ import { AdminNavComponent } from './admin-nav.component';
           </div>
 
           <div class="well">
-            <p class="small strong" style="margin:0">Kata sandi awal</p>
+            <p class="small strong" style="margin:0">Status Keanggotaan Langsung Aktif</p>
             <p class="small muted" style="margin:.35rem 0 0">
-              Pada alur penuh sistem, akun baru memakai kata sandi <span class="mono">sarga123</span> dan langsung
-              berstatus aktif. Minta anggota menggantinya setelah masuk.
+              Berbeda dengan pendaftaran mandiri melalui kode undangan, anggota yang ditambahkan langsung oleh pengurus berstatus <strong>Aktif</strong> tanpa perlu menunggu antrean verifikasi.
             </p>
             <hr class="divider" />
-            <p class="small strong" style="margin:0">Berbeda dari pendaftaran mandiri</p>
+            <p class="small strong" style="margin:0">Data Kontak WhatsApp</p>
             <p class="small muted" style="margin:.35rem 0 0">
-              Pendaftaran mandiri memakai kode undangan dan menunggu verifikasi. Penambahan manual adalah keputusan
-              pengurus, jadi langsung berstatus aktif.
+              Pastikan nomor WhatsApp aktif dan benar agar pengingat peminjaman atau serah terima mudah dikonfirmasi.
             </p>
           </div>
         </div>
@@ -161,6 +171,12 @@ export class MemberAddComponent {
   private readonly membershipService = inject(MembershipService);
   private readonly toastService = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly hostEl = inject(ElementRef<HTMLElement>);
+
+  readonly roleOptions: ReadonlyArray<SelectOption> = [
+    { value: 'ANGGOTA', label: 'Anggota' },
+    { value: 'ADMIN', label: 'Pengurus' }
+  ];
 
   form = {
     fullName: '',
@@ -170,6 +186,7 @@ export class MemberAddComponent {
     position: 'Anggota'
   };
   errorMessage = '';
+  fieldErrors = { fullName: '', waNumber: '', position: '' };
 
   get waitingAuth(): boolean {
     return this.authService.isAuthenticated() && !this.authService.currentUser();
@@ -185,18 +202,23 @@ export class MemberAddComponent {
 
     const fullName = this.form.fullName.trim();
     const waDigits = this.form.waNumber.replace(/\D/g, '');
-    const position = this.form.position.trim() || 'Anggota';
+    const position = this.form.position.trim();
 
-    if (!fullName) {
-      this.errorMessage = 'Tulis nama lengkap anggota.';
-      return;
-    }
-    if (waDigits.length < 9 || waDigits.length > 15) {
-      this.errorMessage = 'Masukkan nomor WhatsApp yang valid (9–15 digit).';
-      return;
-    }
-    if (position.length > 50) {
-      this.errorMessage = 'Nama posisi maksimal 50 karakter.';
+    this.fieldErrors = {
+      fullName: !fullName ? 'Tulis nama lengkap anggota.' : '',
+      waNumber:
+        waDigits.length < 9 || waDigits.length > 15
+          ? 'Masukkan nomor WhatsApp yang valid (9–15 digit).'
+          : '',
+      position: !position
+        ? 'Posisi anggota wajib diisi (1–50 karakter).'
+        : position.length > 50
+          ? 'Nama posisi maksimal 50 karakter.'
+          : '',
+    };
+
+    if (this.fieldErrors.fullName || this.fieldErrors.waNumber || this.fieldErrors.position) {
+      focusFirstInvalid(this.hostEl.nativeElement);
       return;
     }
 

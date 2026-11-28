@@ -1,14 +1,3 @@
-export type RedactionMode = 'solid' | 'blur';
-
-export interface NormalizedRect {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  mode: RedactionMode;
-  label?: string;
-}
-
 export interface WatermarkStampConfig {
   organizationName: string;
   picName: string;
@@ -28,28 +17,6 @@ export function formatWibTimestamp(date = new Date()): string {
 
 export function generateDocumentFingerprint(): string {
   return `SRG-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Date.now().toString(36).slice(-4).toUpperCase()}`;
-}
-
-/** Standar zona sensor otomatis bawaan untuk dokumen identitas (KTP / KTA) */
-export function getDefaultIdRedactions(): NormalizedRect[] {
-  return [
-    {
-      x: 0.16,
-      y: 0.13,
-      w: 0.68,
-      h: 0.13,
-      mode: 'solid',
-      label: 'DISENSOR (NO. IDENTITAS / NIK)'
-    },
-    {
-      x: 0.58,
-      y: 0.64,
-      w: 0.38,
-      h: 0.20,
-      mode: 'solid',
-      label: 'DISENSOR (TANDA TANGAN / PRIVASI)'
-    }
-  ];
 }
 
 export function applyGrayscaleFilter(ctx: CanvasRenderingContext2D, w: number, h: number): void {
@@ -72,36 +39,6 @@ export function applyGrayscaleFilter(ctx: CanvasRenderingContext2D, w: number, h
     ctx.fillRect(0, 0, w, h);
     ctx.restore();
   }
-}
-
-export function paintRedactionRect(
-  ctx: CanvasRenderingContext2D,
-  w: number,
-  h: number,
-  rect: NormalizedRect
-): void {
-  const rx = Math.round(rect.x * w);
-  const ry = Math.round(rect.y * h);
-  const rw = Math.max(12, Math.round(rect.w * w));
-  const rh = Math.max(12, Math.round(rect.h * h));
-
-  ctx.save();
-  ctx.fillStyle = '#111111';
-  ctx.fillRect(rx, ry, rw, rh);
-
-  // Border putih halus untuk memisahkan area sensor
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(rx, ry, rw, rh);
-
-  // Label sensor teks
-  const text = rect.label || 'DISENSOR';
-  ctx.fillStyle = '#f8fafc';
-  ctx.font = `700 ${Math.max(10, Math.min(14, Math.floor(rh * 0.42)))}px sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, rx + rw / 2, ry + rh / 2, rw - 12);
-  ctx.restore();
 }
 
 export function paintForensicWatermark(
@@ -177,7 +114,6 @@ export function paintForensicWatermark(
 export function renderWatermarkedDocument(
   canvas: HTMLCanvasElement,
   img: HTMLImageElement,
-  rects: NormalizedRect[],
   config: WatermarkStampConfig
 ): void {
   const rawW = img.naturalWidth || 960;
@@ -204,12 +140,7 @@ export function renderWatermarkedDocument(
     applyGrayscaleFilter(ctx, w, h);
   }
 
-  // 2. Gambar area sensor default bawaan
-  for (const rect of rects) {
-    paintRedactionRect(ctx, w, h, rect);
-  }
-
-  // 3. Sematkan watermark forensik
+  // 2. Sematkan watermark forensik
   if (config.watermarkEnabled !== false) {
     paintForensicWatermark(ctx, w, h, config);
   }

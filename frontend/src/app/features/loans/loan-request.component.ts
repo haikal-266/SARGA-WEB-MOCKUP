@@ -5,16 +5,18 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription, forkJoin } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
-import { ItemService } from '../../core/services/item.service';
+import { ItemService, normalizeItemImagePath } from '../../core/services/item.service';
 import { LoanService } from '../../core/services/loan.service';
 import { Item, LoanTransaction } from '../../core/models';
 import { AlertComponent } from '../../shared/alert/alert.component';
+import { CustomSelectComponent, SelectOption } from '../../shared/custom-select/custom-select.component';
 import { ToastService } from '../../shared/toast/toast.service';
+import { focusFirstInvalid } from '../../shared/utils/form-focus';
 
 @Component({
   selector: 'app-loan-request',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AlertComponent],
+  imports: [CommonModule, FormsModule, RouterLink, AlertComponent, CustomSelectComponent],
   template: `
     <div class="page page-mid">
       <header class="page-head">
@@ -85,21 +87,16 @@ import { ToastService } from '../../shared/toast/toast.service';
 
               <div class="field">
                 <label class="label" for="loan-item">Alat yang diajukan</label>
-                <select
+                <app-select
                   #itemSelect
-                  class="form-input"
                   id="loan-item"
                   name="item"
+                  [options]="eligibleItemOptions()"
                   [(ngModel)]="form.itemId"
                   (ngModelChange)="onItemChanged()"
-                  [attr.aria-invalid]="formErrors.item ? 'true' : null"
-                  [attr.aria-describedby]="formErrors.item ? 'loan-item-error' : null"
-                  required
-                >
-                  <option *ngFor="let item of eligibleItems()" [value]="item.id">
-                    {{ item.name }} · maks. {{ item.maxDays }} hari
-                  </option>
-                </select>
+                  [invalid]="!!formErrors.item"
+                  [ariaDescribedby]="formErrors.item ? 'loan-item-error' : ''"
+                />
                 <p *ngIf="formErrors.item" id="loan-item-error" class="error-text" role="alert">
                   {{ formErrors.item }}
                 </p>
@@ -176,12 +173,14 @@ import { ToastService } from '../../shared/toast/toast.service';
                 </p>
               </div>
 
-              <label class="checkbox field">
+              <label class="checkbox field" [class.is-invalid]="!!formErrors.agree">
                 <input
                   type="checkbox"
                   name="agree"
                   [(ngModel)]="form.agree"
                   (ngModelChange)="formErrors.agree = ''; formErrors.summary = ''"
+                  [class.is-invalid]="!!formErrors.agree"
+                  [attr.aria-invalid]="formErrors.agree ? 'true' : null"
                 />
                 <span>
                   Saya sudah membaca ketentuan peminjaman dan akan mengembalikan alat sesuai tanggal yang disetujui.
@@ -282,9 +281,10 @@ export class LoanRequestComponent implements OnInit, OnDestroy {
   private readonly toastService = inject(ToastService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly hostEl = inject(ElementRef<HTMLElement>);
   private subscription = new Subscription();
 
-  @ViewChild('itemSelect') private itemSelect?: ElementRef<HTMLSelectElement>;
+  @ViewChild('itemSelect') private itemSelect?: CustomSelectComponent;
   @ViewChild('startInput') private startInput?: ElementRef<HTMLInputElement>;
   @ViewChild('endInput') private endInput?: ElementRef<HTMLInputElement>;
   @ViewChild('purposeInput') private purposeInput?: ElementRef<HTMLTextAreaElement>;
@@ -340,16 +340,23 @@ export class LoanRequestComponent implements OnInit, OnDestroy {
     });
   });
 
-  selectedItem = computed(() => {
-    return this.eligibleItems().find(item => item.id === this.form.itemId) || null;
-  });
+  eligibleItemOptions = computed<ReadonlyArray<SelectOption>>(() =>
+    this.eligibleItems().map(item => ({
+      value: item.id,
+      label: `${item.name} · maks. ${item.maxDays} hari`
+    }))
+  );
 
-  durationDays = computed(() => {
+  selectedItem(): Item | null {
+    return this.eligibleItems().find(item => item.id === this.form.itemId) || null;
+  }
+
+  durationDays(): number | null {
     if (!this.form.start || !this.form.end) return null;
     const diff = this.diffDays(this.form.start, this.form.end);
     if (diff === null || diff < 0) return null;
     return diff + 1;
-  });
+  }
 
   ngOnInit(): void {
     this.subscription.add(
@@ -428,47 +435,46 @@ export class LoanRequestComponent implements OnInit, OnDestroy {
     }
     if (!item) {
       this.formErrors.item = 'Pilih alat yang tersedia terlebih dahulu.';
-      this.itemSelect?.nativeElement.focus();
-      return;
-    }
-    if (item.ownerId === user.id) {
+    } else if (item.ownerId === user.id) {
       this.formErrors.item = 'Anda tidak bisa meminjam barang milik sendiri.';
-      this.itemSelect?.nativeElement.focus();
-      return;
-    }
-    if (!this.form.start || !this.form.end) {
-      this.formErrors.start = 'Isi tanggal mulai dan tanggal kembali.';
-      this.startInput?.nativeElement.focus();
-      return;
-    }
-    if (this.form.start < this.todayIso) {
-      this.formErrors.start = 'Tanggal mulai tidak boleh sebelum hari ini.';
-      this.startInput?.nativeElement.focus();
-      return;
-    }
-    if (this.form.end < this.form.start) {
-      this.formErrors.end = 'Tanggal kembali harus setelah tanggal mulai.';
-      this.endInput?.nativeElement.focus();
-      return;
     }
 
-    const days = this.diffDays(this.form.start, this.form.end);
-    if (days === null || days + 1 > item.maxDays) {
-      const selectedSpan = days !== null ? days + 1 : 0;
-      this.formErrors.end = `Maksimal peminjaman ${item.maxDays} hari. Rentang yang dipilih ${selectedSpan} hari.`;
-      this.endInput?.nativeElement.focus();
-      return;
+    if (!this.form.start) {
+      this.formErrors.start = 'Isi tanggal mulai peminjaman.';
+    } else if (this.form.start < this.todayIso) {
+      this.formErrors.start = 'Tanggal mulai tidak boleh sebelum hari ini.';
+    }
+
+    if (!this.form.end) {
+      this.formErrors.end = 'Isi tanggal kembali peminjaman.';
+    } else if (this.form.start && this.form.end < this.form.start) {
+      this.formErrors.end = 'Tanggal kembali harus setelah tanggal mulai.';
+    } else if (item && this.form.start) {
+      const days = this.diffDays(this.form.start, this.form.end);
+      if (days === null || days + 1 > item.maxDays) {
+        const selectedSpan = days !== null ? days + 1 : 0;
+        this.formErrors.end = `Maksimal peminjaman ${item.maxDays} hari. Rentang yang dipilih ${selectedSpan} hari.`;
+      }
     }
 
     const purpose = this.form.purpose.trim();
     if (purpose.length < 10) {
       this.formErrors.purpose = 'Tuliskan keperluan minimal 10 karakter.';
-      this.purposeInput?.nativeElement.focus();
-      return;
     }
 
     if (!this.form.agree) {
       this.formErrors.agree = 'Centang persetujuan ketentuan peminjaman.';
+    }
+
+    if (
+      this.formErrors.item ||
+      this.formErrors.start ||
+      this.formErrors.end ||
+      this.formErrors.purpose ||
+      this.formErrors.agree ||
+      !item
+    ) {
+      focusFirstInvalid(this.hostEl.nativeElement);
       return;
     }
 
@@ -499,11 +505,7 @@ export class LoanRequestComponent implements OnInit, OnDestroy {
   }
 
   imageSource(item: Item): string {
-    const src = item.imageUrl || item.image;
-    if (!src || src === 'assets/placeholder-item.svg') return '/img/placeholder-item.svg';
-    if (src.startsWith('assets/')) return '/' + src.slice('assets/'.length);
-    if (src.startsWith('img/')) return '/' + src;
-    return src;
+    return normalizeItemImagePath(item.imageUrl || item.image);
   }
 
   handleImageError(event: Event): void {

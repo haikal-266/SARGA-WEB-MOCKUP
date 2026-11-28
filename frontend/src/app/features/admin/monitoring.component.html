@@ -107,7 +107,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngIf="!loading && filteredLoans.length === 0">
+          <tr *ngIf="!loading && filteredLoans.length === 0" class="empty-row">
             <td colspan="6">
               <div class="empty" style="padding:1.25rem">
                 <p class="empty-title">Tidak ada transaksi</p>
@@ -119,20 +119,20 @@
           </tr>
 
           <tr *ngFor="let loan of filteredLoans">
-            <td>
+            <td data-label="Barang">
               <span class="cell-main">{{ loan.item?.name || 'Barang' }}</span>
               <span class="cell-sub mono">{{ loan.item?.code || '—' }}</span>
             </td>
-            <td>
+            <td data-label="Peminjam">
               <span class="cell-main">{{ loan.borrower?.fullName || 'Anggota' }}</span>
               <span class="cell-sub" *ngIf="loan.borrower?.waNumber">{{ loan.borrower?.waNumber }}</span>
             </td>
-            <td>{{ loan.owner?.fullName || loan.item?.owner?.fullName || 'Aset organisasi' }}</td>
-            <td>
+            <td data-label="Pemilik">{{ loan.owner?.fullName || loan.item?.owner?.fullName || 'Aset organisasi' }}</td>
+            <td data-label="Tanggal">
               <span class="cell-main">{{ formatDate(loan.startDate) }}</span>
               <span class="cell-sub">s.d. {{ formatDate(loan.endDate) }}</span>
             </td>
-            <td>
+            <td data-label="Status">
               <app-status-badge
                 kind="loan"
                 [status]="loan.status"
@@ -140,7 +140,7 @@
                 [overdue]="isOverdue(loan)"
               />
             </td>
-            <td>
+            <td data-label="Aksi">
               <div class="btn-row">
                 <button type="button" class="btn-secondary btn-sm" (click)="openLoanDetail(loan)">
                   Rincian

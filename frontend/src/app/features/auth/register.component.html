@@ -4,7 +4,7 @@
       <p class="kicker">Pendaftaran anggota · Alur Verifikasi</p>
       <h1>Daftar dengan kode undangan organisasi</h1>
       <p class="lede">
-        Masukkan kode undangan resmi dari pengurus organisasi Anda. Foto identitas yang diunggah akan otomatis disensor (NIK &amp; TTD) dan diberi watermark forensik penanggung jawab.
+        Masukkan kode undangan resmi dari pengurus organisasi Anda. Foto identitas yang diunggah akan otomatis dikonversi ke grayscale dan diberi watermark forensik penanggung jawab.
       </p>
     </div>
   </div>
@@ -36,11 +36,11 @@
         <div class="step-card">
           <div class="step-head-badge">
             <span class="badge-step">Langkah 1</span>
-            <span class="step-title">Kode Undangan Organisasi</span>
+            <label class="step-title" for="register-invite-code">Kode Undangan Organisasi</label>
           </div>
 
           <div class="invite-action-row">
-            <div style="flex:1">
+            <div style="flex:1;min-width:0">
               <input
                 id="register-invite-code"
                 name="inviteCode"
@@ -50,6 +50,8 @@
                 autocomplete="off"
                 autocapitalize="characters"
                 required
+                [class.is-invalid]="!!fieldErrors.inviteCode"
+                [attr.aria-invalid]="fieldErrors.inviteCode ? 'true' : null"
                 [(ngModel)]="form.inviteCode"
                 (ngModelChange)="onInviteCodeChanged()"
               />
@@ -122,6 +124,7 @@
             label="Nama Lengkap"
             htmlFor="register-full-name"
             [required]="true"
+            [error]="fieldErrors.fullName"
             hint="Sesuai dengan nama yang tercantum pada identitas resmi."
           >
             <input
@@ -132,8 +135,11 @@
               placeholder="Contoh: Hendra Kusuma"
               autocomplete="name"
               required
+              [class.is-invalid]="!!fieldErrors.fullName"
+              [attr.aria-invalid]="fieldErrors.fullName ? 'true' : null"
               [disabled]="!stepTwoUnlocked"
               [(ngModel)]="form.fullName"
+              (ngModelChange)="fieldErrors.fullName = ''; errorMessage = ''"
             />
           </app-form-field>
 
@@ -142,6 +148,7 @@
               label="Nomor HP / WhatsApp"
               htmlFor="register-wa-number"
               [required]="true"
+              [error]="fieldErrors.waNumber"
               hint="Digunakan untuk masuk akun dan verifikasi."
             >
               <input
@@ -153,8 +160,11 @@
                 class="form-input"
                 placeholder="081234567890"
                 required
+                [class.is-invalid]="!!fieldErrors.waNumber"
+                [attr.aria-invalid]="fieldErrors.waNumber ? 'true' : null"
                 [disabled]="!stepTwoUnlocked"
                 [(ngModel)]="form.waNumber"
+                (ngModelChange)="fieldErrors.waNumber = ''; errorMessage = ''"
               />
             </app-form-field>
 
@@ -180,6 +190,7 @@
             label="Kata Sandi"
             htmlFor="register-password"
             [required]="true"
+            [error]="fieldErrors.password"
             hint="Minimal 6 karakter kombinasi huruf atau angka."
           >
             <input
@@ -191,30 +202,29 @@
               class="form-input"
               placeholder="Masukkan kata sandi aman"
               required
+              [class.is-invalid]="!!fieldErrors.password"
+              [attr.aria-invalid]="fieldErrors.password ? 'true' : null"
               [disabled]="!stepTwoUnlocked"
               [(ngModel)]="form.password"
+              (ngModelChange)="fieldErrors.password = ''; errorMessage = ''"
             />
           </app-form-field>
 
-          <!-- DOKUMEN IDENTITAS: SENSOR & WATERMARK OTOMATIS -->
+          <!-- DOKUMEN IDENTITAS: GRAYSCALE & WATERMARK OTOMATIS -->
           <div class="doc-upload-section">
-            <div class="form-grid two">
+            <div class="form-grid">
               <app-form-field
                 label="Jenis Dokumen Identitas"
                 htmlFor="reg-doc-type"
                 [required]="true"
               >
-                <select
+                <app-select
                   id="reg-doc-type"
                   name="documentType"
-                  class="form-select"
+                  [options]="docTypeOptions"
                   [disabled]="!stepTwoUnlocked"
                   [(ngModel)]="form.documentType"
-                >
-                  <option value="KTP">KTP (Kartu Tanda Penduduk)</option>
-                  <option value="KTA">KTA (Kartu Tanda Anggota)</option>
-                  <option value="SIM / Lainnya">SIM / Dokumen Resmi Lainnya</option>
-                </select>
+                />
               </app-form-field>
 
               <app-form-field
@@ -226,6 +236,7 @@
                   id="reg-doc-note"
                   name="documentNote"
                   type="text"
+                  autocomplete="off"
                   class="form-input"
                   placeholder="Contoh: Sudah konfirmasi via WA"
                   [disabled]="!stepTwoUnlocked"
@@ -234,7 +245,7 @@
               </app-form-field>
             </div>
 
-            <!-- Komponen Sensor & Watermark Otomatis Bawaan -->
+            <!-- Komponen Grayscale & Watermark Otomatis Bawaan -->
             <div class="canvas-mount" *ngIf="stepTwoUnlocked">
               <app-id-watermark-canvas
                 [organizationName]="resolvedOrgName"
@@ -242,9 +253,13 @@
                 [picName]="picName"
                 [picContact]="picContact"
                 [picPosition]="picPosition"
+                [invalid]="!!fieldErrors.documentUrl"
                 (processed)="onDocumentProcessed($event)"
                 (documentCleared)="onDocumentCleared()"
               />
+              <p *ngIf="fieldErrors.documentUrl" class="error-text" role="alert">
+                {{ fieldErrors.documentUrl }}
+              </p>
             </div>
           </div>
 
@@ -280,7 +295,7 @@
             <span class="timeline-dot" aria-hidden="true"></span>
             <div>
               <strong>2. Unggah Foto Identitas</strong>
-              <p class="tiny muted" style="margin:.15rem 0 0">Sistem otomatis menerapkan grayscale, sensor NIK &amp; TTD, serta watermark pengurus.</p>
+              <p class="tiny muted" style="margin:.15rem 0 0">Sistem otomatis menerapkan grayscale dan watermark forensik pengurus.</p>
             </div>
           </li>
           <li class="timeline-item">
@@ -306,7 +321,7 @@
           <p class="small strong" style="margin:0">Kepatuhan Privasi Dokumen (UU PDP)</p>
         </div>
         <p class="small muted" style="margin:0;line-height:1.45">
-          Foto KTP/KTA yang Anda unggah disensor secara otomatis pada bagian nomor identitas (NIK) dan tanda tangan sebelum disimpan. Watermark forensik memastikan dokumen tidak dapat disalahgunakan di luar kepentingan verifikasi organisasi SARGA.
+          Foto KTP/KTA yang Anda unggah otomatis dikonversi menjadi grayscale dan diberi watermark forensik penanggung jawab sebelum disimpan, sehingga dokumen tidak dapat disalahgunakan di luar kepentingan verifikasi organisasi SARGA.
         </p>
       </div>
     </div>

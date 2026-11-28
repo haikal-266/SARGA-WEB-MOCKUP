@@ -1,14 +1,17 @@
 import { CommonModule } from '@angular/common';
 import {
+  ChangeDetectorRef,
   Component,
   ElementRef,
   EventEmitter,
   Input,
+  NgZone,
   OnChanges,
   OnDestroy,
   Output,
   SimpleChanges,
-  ViewChild
+  ViewChild,
+  inject
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { WatermarkedDocumentOutput } from '../../../core/models';
@@ -16,7 +19,6 @@ import { IconComponent } from '../../icon/icon.component';
 import {
   formatWibTimestamp,
   generateDocumentFingerprint,
-  getDefaultIdRedactions,
   renderWatermarkedDocument
 } from './watermark-renderer';
 
@@ -28,12 +30,16 @@ import {
   styleUrl: './id-watermark-canvas.component.css'
 })
 export class IdWatermarkCanvasComponent implements OnChanges, OnDestroy {
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly ngZone = inject(NgZone);
+
   @Input() organizationName = 'Organisasi SARGA';
   @Input() picName = '';
   @Input() picContact = '';
   @Input() picPosition = 'Ketua / Pengurus Utama';
   @Input() documentType = 'KTP';
   @Input() initialImageUrl = '';
+  @Input() invalid = false;
 
   @Output() processed = new EventEmitter<WatermarkedDocumentOutput>();
   @Output() documentCleared = new EventEmitter<void>();
@@ -105,22 +111,32 @@ export class IdWatermarkCanvasComponent implements OnChanges, OnDestroy {
     this.revokeObjectUrl();
     this.activeObjectUrl = URL.createObjectURL(file);
     this.loadImageUrl(this.activeObjectUrl, file.name);
+    input.value = '';
   }
 
   loadImageUrl(url: string, fileName: string): void {
     this.errorMessage = '';
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    if (/^https?:\/\//i.test(url)) {
+      img.crossOrigin = 'anonymous';
+    }
     img.onload = () => {
-      this.loadedImage = img;
-      this.sourceFileName = fileName;
-      this.fingerprint = generateDocumentFingerprint();
-      this.imageLoaded = true;
-      setTimeout(() => this.renderAndEmit());
+      this.ngZone.run(() => {
+        this.loadedImage = img;
+        this.sourceFileName = fileName;
+        this.fingerprint = generateDocumentFingerprint();
+        this.imageLoaded = true;
+        // Flush *ngIf so #editorCanvas is mounted synchronously under zone event coalescing.
+        this.cdr.detectChanges();
+        this.renderAndEmit();
+      });
     };
     img.onerror = () => {
-      this.errorMessage = 'Gambar tidak dapat dimuat. Pastikan berkas gambar valid.';
-      this.imageLoaded = false;
+      this.ngZone.run(() => {
+        this.errorMessage = 'Gambar tidak dapat dimuat. Pastikan berkas gambar valid.';
+        this.imageLoaded = false;
+        this.cdr.detectChanges();
+      });
     };
     img.src = url;
   }
@@ -148,31 +164,31 @@ export class IdWatermarkCanvasComponent implements OnChanges, OnDestroy {
       applyGrayscale: true
     };
 
-    // Sensor bawaan otomatis (NIK & TTD) + Grayscale + Watermark Forensik
-    const redactions = getDefaultIdRedactions();
-    renderWatermarkedDocument(canvas, img, redactions, config);
+    // Konversi Grayscale + Watermark Forensik
+    renderWatermarkedDocument(canvas, img, config);
 
     try {
       const dataUrl = canvas.toDataURL('image/jpeg', 0.86);
       canvas.toBlob(
         blob => {
-          if (!blob) return;
-          const sanitizedBase = this.sourceFileName
-            .replace(/\.[^.]+$/, '')
-            .replace(/[^a-zA-Z0-9_-]/g, '_');
-          const outName = `${sanitizedBase || 'identitas'}_disensor.jpg`;
-          const file = new File([blob], outName, { type: 'image/jpeg' });
-          const summary = `${this.previewStampHeader} | PJ: ${this.effectivePicName} (${this.effectivePicContact}) | ${formatWibTimestamp()} | ID: ${this.fingerprint}`;
+          this.ngZone.run(() => {
+            if (!blob) return;
+            const sanitizedBase = this.sourceFileName
+              .replace(/\.[^.]+$/, '')
+              .replace(/[^a-zA-Z0-9_-]/g, '_');
+            const outName = `${sanitizedBase || 'identitas'}_terwatermark.jpg`;
+            const file = new File([blob], outName, { type: 'image/jpeg' });
+            const summary = `${this.previewStampHeader} | PJ: ${this.effectivePicName} (${this.effectivePicContact}) | ${formatWibTimestamp()} | ID: ${this.fingerprint}`;
 
-          this.processed.emit({
-            dataUrl,
-            blob,
-            file,
-            fileName: outName,
-            documentType: this.documentType,
-            watermarkSummary: summary,
-            fingerprint: this.fingerprint,
-            redactionCount: redactions.length
+            this.processed.emit({
+              dataUrl,
+              blob,
+              file,
+              fileName: outName,
+              documentType: this.documentType,
+              watermarkSummary: summary,
+              fingerprint: this.fingerprint
+            });
           });
         },
         'image/jpeg',

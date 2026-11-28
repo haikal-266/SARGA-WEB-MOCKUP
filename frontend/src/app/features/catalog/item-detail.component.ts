@@ -200,6 +200,7 @@ import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.com
       margin: 1rem 0 1.5rem;
       color: var(--color-ink);
       line-height: 1.6;
+      overflow-wrap: anywhere;
     }
     .item-facts {
       margin: 0 0 1.5rem;
@@ -217,6 +218,7 @@ import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.com
     .item-facts dd {
       margin: 0;
       color: var(--color-ink);
+      overflow-wrap: anywhere;
     }
     .item-facts ul {
       margin: 0;
@@ -249,6 +251,10 @@ import { StatusBadgeComponent } from '../../shared/status-badge/status-badge.com
       .item-facts > div {
         grid-template-columns: 1fr;
         gap: 0.25rem;
+      }
+      .detail-actions > .btn-primary,
+      .detail-actions > .btn-secondary {
+        flex: 1 1 100%;
       }
     }
   `]

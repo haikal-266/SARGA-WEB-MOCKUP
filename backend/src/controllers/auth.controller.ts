@@ -17,8 +17,13 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       where: { inviteCode: inviteCode.trim().toUpperCase() }
     });
 
-    if (!org) {
-      res.status(404).json({ success: false, message: 'Kode undangan organisasi tidak valid atau sudah kedaluwarsa.' });
+    if (!org || org.status !== 'Aktif') {
+      res.status(404).json({ success: false, message: 'Kode undangan organisasi tidak valid atau organisasi tidak aktif.' });
+      return;
+    }
+
+    if (org.inviteExpires && new Date(org.inviteExpires) < new Date()) {
+      res.status(400).json({ success: false, message: 'Kode undangan ini sudah kedaluwarsa.' });
       return;
     }
 
@@ -55,7 +60,9 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         }
       },
       include: {
-        memberships: true
+        memberships: {
+          include: { organization: true }
+        }
       }
     });
 
@@ -72,6 +79,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         id: user.id,
         waNumber: user.waNumber,
         fullName: user.fullName,
+        address: user.address,
         isPlatformAdmin: user.isPlatformAdmin,
         memberships: user.memberships
       }

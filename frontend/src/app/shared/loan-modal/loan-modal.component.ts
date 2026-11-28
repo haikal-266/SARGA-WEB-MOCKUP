@@ -8,13 +8,15 @@ import {
   OnDestroy,
   Output,
   SimpleChanges,
-  ViewChild
+  ViewChild,
+  inject
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LoanTransaction } from '../../core/models';
 import { StatusBadgeComponent } from '../status-badge/status-badge.component';
 import { Perspective } from '../status-badge/status-labels';
+import { focusFirstInvalid } from '../utils/form-focus';
 
 export interface LoanRejectPayload {
   loan: LoanTransaction;
@@ -308,6 +310,7 @@ export interface LoanRejectPayload {
   `]
 })
 export class LoanModalComponent implements OnChanges, OnDestroy {
+  private readonly hostEl = inject(ElementRef<HTMLElement>);
   @Input() open = false;
   @Input() loan: LoanTransaction | null = null;
   @Input() isAdmin = false;
@@ -411,7 +414,7 @@ export class LoanModalComponent implements OnChanges, OnDestroy {
     const reason = this.rejectReason.trim();
     if (reason.length < 5) {
       this.rejectError = 'Tuliskan alasan penolakan minimal 5 karakter.';
-      this.reasonInput?.nativeElement.focus();
+      focusFirstInvalid(this.hostEl.nativeElement);
       return;
     }
     this.reject.emit({ loan: this.loan, reason });

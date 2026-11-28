@@ -6,12 +6,13 @@ import { AuthService } from '../../core/services/auth.service';
 import { OrganizationService } from '../../core/services/organization.service';
 import { ToastService } from '../../shared/toast/toast.service';
 import { AlertComponent } from '../../shared/alert/alert.component';
+import { IconComponent } from '../../shared/icon/icon.component';
 import { StructureResponse, StructureMember, Announcement } from '../../core/models';
 
 @Component({
   selector: 'app-structure',
   standalone: true,
-  imports: [CommonModule, RouterLink, AlertComponent],
+  imports: [CommonModule, RouterLink, AlertComponent, IconComponent],
   template: `
     <div class="structure-page">
       <div class="page-top-nav">
@@ -102,7 +103,7 @@ import { StructureResponse, StructureMember, Announcement } from '../../core/mod
                   rel="noopener noreferrer"
                   [attr.aria-label]="'Hubungi ' + leader.fullName + ' via WhatsApp'"
                 >
-                  <span class="wa-icon" aria-hidden="true">💬</span>
+                  <app-icon name="phone" [size]="15" />
                   <span>Hubungi WhatsApp</span>
                   <span class="arrow" aria-hidden="true">↗</span>
                 </a>
@@ -148,7 +149,7 @@ import { StructureResponse, StructureMember, Announcement } from '../../core/mod
                   rel="noopener noreferrer"
                   [attr.aria-label]="'Hubungi ' + member.fullName + ' via WhatsApp'"
                 >
-                  <span aria-hidden="true">📱</span> WhatsApp ↗
+                  <app-icon name="phone" [size]="14" /> WhatsApp ↗
                 </a>
               </div>
             </div>
@@ -163,14 +164,14 @@ import { StructureResponse, StructureMember, Announcement } from '../../core/mod
         </section>
 
         <!-- Invite Code Box (khusus Pengurus / Admin) -->
-        <section class="invite-box" *ngIf="isAdmin && structure.organization.inviteCode" aria-labelledby="invite-heading">
+        <section class="invite-box" *ngIf="isAdmin && inviteCode" aria-labelledby="invite-heading">
           <div class="invite-info">
             <span id="invite-heading" class="invite-label">KODE UNDANGAN ORGANISASI</span>
-            <div class="invite-code">{{ structure.organization.inviteCode }}</div>
-            <span class="invite-meta" *ngIf="structure.organization.inviteExpires">
-              Berlaku sampai {{ formatDate(structure.organization.inviteExpires) }}
+            <div class="invite-code">{{ inviteCode }}</div>
+            <span class="invite-meta" *ngIf="inviteExpires">
+              Berlaku sampai {{ formatDate(inviteExpires) }}
             </span>
-            <span class="invite-meta" *ngIf="!structure.organization.inviteExpires">
+            <span class="invite-meta" *ngIf="!inviteExpires">
               Bagikan kode ini kepada warga untuk bergabung ke {{ structure.organization.name }}.
             </span>
           </div>
@@ -178,12 +179,13 @@ import { StructureResponse, StructureMember, Announcement } from '../../core/mod
             <button
               type="button"
               class="btn btn-sm btn-primary"
-              (click)="copyInviteCode(structure.organization.inviteCode)"
+              (click)="copyInviteCode(inviteCode)"
             >
-              📋 Salin Kode
+              <app-icon name="file-text" [size]="15" />
+              <span>Salin Kode</span>
             </button>
-            <a routerLink="/admin-organisasi" class="btn btn-sm btn-secondary">
-              Atur Undangan
+            <a routerLink="/admin-tambah-anggota" class="btn btn-sm btn-secondary">
+              Tambah Anggota
             </a>
           </div>
         </section>
@@ -352,8 +354,14 @@ import { StructureResponse, StructureMember, Announcement } from '../../core/mod
       background: var(--color-paper);
       border: 1px solid var(--color-rule);
       border-radius: var(--radius-card);
-      padding: 1.5rem;
+      padding: 1rem;
       box-shadow: var(--shadow-subtle);
+    }
+
+    @media (min-width: 600px) {
+      .section-card {
+        padding: 1.5rem;
+      }
     }
 
     .section-header {
@@ -533,6 +541,7 @@ import { StructureResponse, StructureMember, Announcement } from '../../core/mod
 
     .structure-col-pos {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: 0.45rem;
     }
@@ -624,6 +633,7 @@ import { StructureResponse, StructureMember, Announcement } from '../../core/mod
       font-weight: 700;
       letter-spacing: 0.08em;
       color: var(--color-accent-soft-ink);
+      overflow-wrap: anywhere;
     }
 
     .invite-meta {
@@ -635,6 +645,15 @@ import { StructureResponse, StructureMember, Announcement } from '../../core/mod
       display: flex;
       flex-wrap: wrap;
       gap: 0.5rem;
+    }
+
+    @media (max-width: 480px) {
+      .invite-actions {
+        width: 100%;
+      }
+      .invite-actions > * {
+        flex: 1 1 100%;
+      }
     }
 
     /* Announcements Section */
@@ -713,8 +732,8 @@ import { StructureResponse, StructureMember, Announcement } from '../../core/mod
     }
 
     .btn-sm {
-      min-height: 38px;
-      padding: 0.35rem 0.75rem;
+      min-height: 44px;
+      padding: 0.45rem 0.85rem;
       font-size: 0.82rem;
     }
 
@@ -784,6 +803,21 @@ export class StructureComponent implements OnInit, OnDestroy {
 
   get isAdmin(): boolean {
     return this.authService.isAdmin();
+  }
+
+  get inviteCode(): string | undefined {
+    return (
+      this.structure?.organization?.inviteCode ||
+      this.authService.activeMembership()?.organization?.inviteCode
+    );
+  }
+
+  get inviteExpires(): string | undefined {
+    return (
+      this.structure?.organization?.inviteExpires ||
+      this.authService.activeMembership()?.organization?.inviteExpires ||
+      undefined
+    );
   }
 
   get activeOrgId(): string | null {

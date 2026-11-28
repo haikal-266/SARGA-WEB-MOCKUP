@@ -49,12 +49,6 @@
     </div>
 
     <app-alert
-      kind="info"
-      title="Penyimpanan perubahan sementara di peramban"
-      message="Endpoint pembaruan barang (PUT /api/v1/items/:id) belum tersedia pada server saat ini. Perubahan data dan status barang disimpan secara lokal di peramban ini dan langsung tampil di katalog serta detail barang."
-    />
-
-    <app-alert
       *ngIf="errorMessage"
       kind="error"
       title="Perubahan belum disimpan"
@@ -80,8 +74,12 @@
             name="name"
             type="text"
             required
+            [class.is-invalid]="!!fieldErrors.name"
+            [attr.aria-invalid]="fieldErrors.name ? 'true' : null"
             [(ngModel)]="form.name"
+            (ngModelChange)="fieldErrors.name = ''; errorMessage = ''"
           />
+          <p *ngIf="fieldErrors.name" class="error-text" role="alert">{{ fieldErrors.name }}</p>
           <p class="hint">Tulis merek dan ukuran bila penting, misalnya "Bor listrik impact 13 mm".</p>
         </div>
 
@@ -96,22 +94,22 @@
               min="1"
               max="14"
               required
+              [class.is-invalid]="!!fieldErrors.maxDays"
+              [attr.aria-invalid]="fieldErrors.maxDays ? 'true' : null"
               [(ngModel)]="form.maxDays"
+              (ngModelChange)="fieldErrors.maxDays = ''; errorMessage = ''"
             />
+            <p *ngIf="fieldErrors.maxDays" class="error-text" role="alert">{{ fieldErrors.maxDays }}</p>
           </div>
 
           <div class="field">
             <label class="label" for="edit-item-status">Status alat</label>
-            <select
-              class="form-input"
+            <app-select
               id="edit-item-status"
               name="status"
+              [options]="statusOptions"
               [(ngModel)]="form.status"
-            >
-              <option *ngFor="let opt of statusOptions" [value]="opt.value">
-                {{ opt.label }}
-              </option>
-            </select>
+            />
           </div>
         </div>
 
@@ -123,8 +121,12 @@
             name="location"
             type="text"
             required
+            [class.is-invalid]="!!fieldErrors.location"
+            [attr.aria-invalid]="fieldErrors.location ? 'true' : null"
             [(ngModel)]="form.location"
+            (ngModelChange)="fieldErrors.location = ''; errorMessage = ''"
           />
+          <p *ngIf="fieldErrors.location" class="error-text" role="alert">{{ fieldErrors.location }}</p>
         </div>
 
         <div class="field">
@@ -135,8 +137,12 @@
             name="description"
             rows="3"
             required
+            [class.is-invalid]="!!fieldErrors.description"
+            [attr.aria-invalid]="fieldErrors.description ? 'true' : null"
             [(ngModel)]="form.description"
+            (ngModelChange)="fieldErrors.description = ''; errorMessage = ''"
           ></textarea>
+          <p *ngIf="fieldErrors.description" class="error-text" role="alert">{{ fieldErrors.description }}</p>
         </div>
 
         <div class="field">
@@ -161,31 +167,46 @@
             rows="3"
             maxlength="250"
             required
+            [class.is-invalid]="!!fieldErrors.instructions"
+            [attr.aria-invalid]="fieldErrors.instructions ? 'true' : null"
             [(ngModel)]="form.instructions"
+            (ngModelChange)="fieldErrors.instructions = ''; errorMessage = ''"
           ></textarea>
+          <p *ngIf="fieldErrors.instructions" class="error-text" role="alert">{{ fieldErrors.instructions }}</p>
           <p class="hint">Maksimal 250 karakter ({{ form.instructions.length }}/250).</p>
         </div>
 
         <div class="field">
-          <label class="label" for="edit-item-image">Foto contoh</label>
+          <label class="label" for="edit-item-image">Foto alat</label>
           <div class="image-picker-row">
-            <select
-              class="form-input"
+            <app-select
               id="edit-item-image"
               name="image"
+              [options]="imageSelectOptions"
               [(ngModel)]="form.image"
-            >
-              <option *ngFor="let opt of imageOptions" [value]="opt[0]">{{ opt[1] }}</option>
-            </select>
+            />
             <div class="preview-thumb">
               <img [src]="previewImage" [alt]="'Pratinjau ' + (form.name || 'barang')" />
             </div>
           </div>
-          <p class="hint">Memakai aset foto contoh lokal. Unggahan foto kustom ke server belum tersedia untuk edit barang.</p>
+          <label class="label" for="edit-item-photo-upload" style="margin-top:.75rem">Atau unggah foto baru (JPG/PNG/WebP, maks. 5 MB)</label>
+          <app-file-picker
+            id="edit-item-photo-upload"
+            buttonLabel="Pilih Foto Baru"
+            placeholder="Belum ada foto baru dipilih"
+            [busy]="uploadingPhoto"
+            [fileName]="uploadedFileName"
+            (fileSelected)="onPhotoPicked($event)"
+          />
+          <p class="hint">
+            {{ uploadingPhoto ? 'Sedang mengunggah & menyematkan watermark forensik...' : 'Pilih tampilan contoh atau unggah foto baru dari perangkat Anda.' }}
+          </p>
         </div>
 
-        <div class="btn-row form-submit">
-          <button class="btn-primary" type="submit">Simpan perubahan</button>
+        <div class="btn-row form-submit edit-actions">
+          <button class="btn-primary" type="submit" [disabled]="uploadingPhoto">
+            {{ uploadingPhoto ? 'Mengunggah foto...' : 'Simpan perubahan' }}
+          </button>
           <a class="btn-secondary" [routerLink]="['/katalog', item.id]">Batal</a>
         </div>
       </form>
